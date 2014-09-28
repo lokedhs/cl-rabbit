@@ -7,6 +7,7 @@
   :license "MIT"
   :description "Simple RabbitMQ interface for Common Lisp using CFFI"
   :depends-on (:cffi
+               :cffi-libffi
                :alexandria)
   :components ((:module src
                         :serial t
