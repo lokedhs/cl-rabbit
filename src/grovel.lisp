@@ -1,13 +1,19 @@
 (in-package :cl-rabbit)
 
 (include "amqp.h")
+(include "amqp_framing.h")
+(include "amqp_tcp_socket.h")
 
 (constant (*amqp-version-major* "AMQP_VERSION_MAJOR"))
 (constant (*amqp-version-minor* "AMQP_VERSION_MINOR"))
 (constant (*amqp-version-patch* "AMQP_VERSION_PATCH"))
 (constant (*amqp-version-is-release* "AMQP_VERSION_IS_RELEASE"))
 
+(ctype size-t "size_t")
+
+(ctype amqp-boolean-t "amqp_boolean_t")
 (ctype amqp-method-number-t "amqp_method_number_t")
+(ctype amqp-channel-t "amqp_channel_t")
 
 (cstruct amqp-method-t "amqp_method_t"
          (id "id" :type amqp-method-number-t)
@@ -17,6 +23,13 @@
          (reply-type "reply_type" :type :int)
          (reply "reply" :type (:struct amqp-method-t))
          (library-error "library_error" :type :int))
+
+(cstruct amqp-bytes-t "amqp_bytes_t"
+         (len "len" :type size-t)
+         (bytes "bytes" :type :pointer))
+
+(cstruct amqp-channel-open-ok-t "amqp_channel_open_ok_t"
+         (channel-id "channel_id" :type (:struct amqp-bytes-t)))
 
 (cenum amqp-sasl-method-enum
        ((:amqp-sasl-method-plain "AMQP_SASL_METHOD_PLAIN")))

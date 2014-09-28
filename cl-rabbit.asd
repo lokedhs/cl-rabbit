@@ -14,4 +14,5 @@
                         :components ((:file "package")
                                      (cffi-grovel:grovel-file "grovel")
                                      (:file "functions")
+                                     (:file "misc")
                                      (:file "amqp")))))

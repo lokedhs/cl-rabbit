@@ -8,6 +8,12 @@
 (cffi:defctype amqp-connection-state-t :pointer)
 (cffi:defctype amqp-socket-t-ptr :pointer)
 
+(cffi:defcfun ("amqp_cstring_bytes" amqp-cstring-bytes) (:struct amqp-bytes-t)
+  (cstr :string))
+
+(cffi:defcfun ("amqp_get_rpc_reply" amqp-get-rpc-reply) (:struct amqp-rpc-reply-t)
+  (state amqp-connection-state-t))
+
 (cffi:defcfun ("amqp_new_connection" amqp-new-connection) amqp-connection-state-t)
 (cffi:defcfun ("amqp_destroy_connection" amqp-destroy-connection) :int
   (state amqp-connection-state-t))
@@ -32,3 +38,17 @@
   (sasl-method amqp-sasl-method-enum)
   (user :string)
   (password :string))
+
+(cffi:defcfun ("amqp_channel_open" amqp-channel-open) (:pointer (:struct amqp-channel-open-ok-t))
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t))
+
+(cffi:defcfun ("amqp_basic_publish" amqp-basic-publish) :int
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (exchange (:struct amqp-bytes-t))
+  (routing-key (:struct amqp-bytes-t))
+  (mandatory amqp-boolean-t)
+  (immediate amqp-boolean-t)
+  (properties :pointer)
+  (body (:struct amqp-bytes-t)))

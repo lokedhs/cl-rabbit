@@ -7,7 +7,8 @@
 
 (defun verify-status (status)
   (unless (= status (cffi:foreign-enum-value 'amqp-status-enum :amqp-status-ok))
-    (error "Failed: ~a" status)))
+    (error "Failed: ~a" status))
+  status)
 
 (defun new-connection ()
   (fail-if-null (amqp-new-connection)))
@@ -31,10 +32,31 @@
     (unless (= (getf reply 'reply-type) (cffi:foreign-enum-value 'amqp-response-type-enum :amqp-response-normal))
       (error "Illegal response from login"))))
 
+(defun channel-open (state channel)
+  (fail-if-null (amqp-channel-open state channel)))
+
+(defun basic-publish (state channel exchange routing-key body
+                      &key mandatory immediate)
+  (check-type state cffi-sys:foreign-pointer)
+  (check-type channel integer)
+  (check-type exchange string)
+  (check-type routing-key string)
+  (check-type body array)
+  (with-bytes-struct body-val body
+    (verify-status (amqp-basic-publish state channel (amqp-cstring-bytes exchange)
+                                       (amqp-cstring-bytes routing-key)
+                                       (if mandatory 1 0) (if immediate 1 0)
+                                       (cffi-sys:null-pointer) body-val))))
+
+(defun send-batch (conn queue-name)
+  (basic-publish conn 1 "amq.direct" queue-name #(97 98 99 10)))
+
 (defun test-send ()
   (let ((conn (new-connection)))
     (unwind-protect
          (let ((socket (tcp-socket-new conn)))
            (socket-open socket "localhost" 5672)
-           (login-sasl-plain conn "/" "guest" "guest"))
+           (login-sasl-plain conn "/" "guest" "guest")
+           (channel-open conn 1)
+           (send-batch conn "foo"))
       (destroy-connection conn))))
