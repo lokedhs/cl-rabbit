@@ -2,6 +2,20 @@
 
 (declaim (optimize (speed 0) (safety 3) (debug 3)))
 
+(defclass message ()
+  ((body :type (simple-array (unsigned-byte 8) (*))
+         :initarg :body
+         :reader message/body)))
+
+(defmethod print-object ((obj message) stream)
+  (print-unreadable-object (obj stream :type t :identity nil)
+    (if (slot-boundp obj 'body)
+        (format stream "LENGTH ~a" (array-dimension (slot-value obj 'body) 0))
+        (format stream "NOT-BOUND"))))
+
+(defun make-envelope-message (value)
+  (make-instance 'message :body (bytes->array (getf value 'body))))
+
 (defclass envelope ()
   ((channel      :type integer
                  :initarg :channel
@@ -17,7 +31,10 @@
                  :reader envelope/exchange)
    (routing-key  :type string
                  :initarg :routing-key
-                 :reader envelope/routing-key)))
+                 :reader envelope/routing-key)
+   (message      :type message
+                 :initarg :message
+                 :reader envelope/message)))
 
 (defmethod print-object ((obj envelope) stream)
   (print-unreadable-safely (channel consumer-tag delivery-tag exchange routing-key) obj stream
@@ -137,7 +154,8 @@
                                      :consumer-tag (bytes->string (getval 'consumer-tag))
                                      :delivery-tag (getval 'delivery-tag)
                                      :exchange (bytes->string (getval 'exchange))
-                                     :routing-key (bytes->string (getval 'routing-key))))
+                                     :routing-key (bytes->string (getval 'routing-key))
+                                     :message (make-envelope-message (getval 'message))))
                  (amqp-destroy-envelope envelope)))
 
               ;; Treat library errors
