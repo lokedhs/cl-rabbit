@@ -8,7 +8,8 @@
   :description "Simple RabbitMQ interface for Common Lisp using CFFI"
   :depends-on (:cffi
                :cffi-libffi
-               :alexandria)
+               :alexandria
+               :babel)
   :components ((:module src
                         :serial t
                         :components ((:file "package")
