@@ -14,6 +14,16 @@
 (ctype amqp-boolean-t "amqp_boolean_t")
 (ctype amqp-method-number-t "amqp_method_number_t")
 (ctype amqp-channel-t "amqp_channel_t")
+(ctype amqp-flags-t "amqp_flags_t")
+(ctype uint8-t "uint8_t")
+(ctype uint32-t "uint32_t")
+(ctype uint64-t "uint64_t")
+(ctype time-t "time_t")
+(ctype suseconds-t "suseconds_t")
+
+(cstruct timeval "struct timeval"
+         (tv-sec "tv_sec" :type time-t)
+         (tv-usec "tv_usec" :type suseconds-t))
 
 (cstruct amqp-method-t "amqp_method_t"
          (id "id" :type amqp-method-number-t)
@@ -28,8 +38,54 @@
          (len "len" :type size-t)
          (bytes "bytes" :type :pointer))
 
+(cstruct amqp-table-t "amqp_table_t"
+         (num-entries "num_entries" :type :int)
+         (entries "entries" :type :pointer))
+
 (cstruct amqp-channel-open-ok-t "amqp_channel_open_ok_t"
          (channel-id "channel_id" :type (:struct amqp-bytes-t)))
+
+(cstruct amqp-queue-declare-ok-t "amqp_queue_declare_ok_t"
+         (queue "queue" :type (:struct amqp-bytes-t))
+         (message-count "message_count" :type uint32-t)
+         (consumer-count "consumer_count" :type uint32-t))
+
+(cstruct amqp-basic-consume-ok-t "amqp_basic_consume_ok_t"
+         (consumer-tag "consumer_tag" :type (:struct amqp-bytes-t)))
+
+(cstruct amqp-basic-properties-t "amqp_basic_properties_t"
+         #+nil(flags "_flags" :type amqp-flags-t)
+         (content-type "content_type" :type (:struct amqp-bytes-t))
+         (content-encoding "content_encoding" :type (:struct amqp-bytes-t))
+         #+nil (headers "headers")
+         (delivery-mode "delivery_mode" :type uint8-t)
+         (priority "priority" :type uint8-t)
+         (correlation-id "correlation_id" :type (:struct amqp-bytes-t))
+         (reply-to "reply_to" :type (:struct amqp-bytes-t))
+         (expiration "expiration" :type (:struct amqp-bytes-t))
+         (message_id "message_id" :type (:struct amqp-bytes-t))
+         (timestamp "timestamp" :type uint64-t)
+         (type "type" :type (:struct amqp-bytes-t))
+         (user_id "user_id" :type (:struct amqp-bytes-t))
+         (app-id "app_id" :type (:struct amqp-bytes-t))
+         (cluster-id "cluster_id" :type (:struct amqp-bytes-t)))
+
+(cstruct amqp-message-t "amqp_message_t"
+         (properties "properties" :type (:struct amqp-basic-properties-t))
+         (body "body" :type (:struct amqp-bytes-t))
+         #+nil(pool "pool" :type amqp-pool-t))
+
+(cstruct amqp-envelope-t "amqp_envelope_t"
+         (channel "channel" :type amqp-channel-t)
+         (consumer-tag "consumer_tag" :type (:struct amqp-bytes-t))
+         (delivery-tag "delivery_tag" :type uint64-t)
+         (redelivered "redelivered" :type amqp-boolean-t)
+         (exchange "exchange" :type (:struct amqp-bytes-t))
+         (routing-key "routing_key" :type (:struct amqp-bytes-t))
+         (message "message" :type (:struct amqp-message-t)))
+
+(cvar ("amqp_empty_table" amqp-empty-table) (:struct amqp-table-t))
+(cvar ("amqp_empty_bytes" amqp-empty-bytes) (:struct amqp-bytes-t))
 
 (cenum amqp-sasl-method-enum
        ((:amqp-sasl-method-plain "AMQP_SASL_METHOD_PLAIN")))

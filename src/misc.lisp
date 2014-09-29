@@ -1,5 +1,7 @@
 (in-package :cl-rabbit)
 
+(declaim (optimize (speed 0) (safety 3) (debug 3)))
+
 (defun convert-to-bytes (array)
   (labels ((mk-byte8 (a)
              (let ((result (make-array (length a) :element-type '(unsigned-byte 8))))
@@ -35,7 +37,7 @@
               (progn ,@body))
          (cffi:foreign-free ,s)))))
 
-(defmacro with-bytes-struct (symbol value &body body)
+(defmacro with-bytes-struct ((symbol value) &body body)
   (let ((value-sym (gensym "VALUE-"))
         (buf-sym (gensym "BUF-")))
     `(let ((,value-sym ,value))
@@ -43,3 +45,42 @@
          (let ((,symbol (list 'len (array-dimension ,value-sym 0)
                               'bytes ,buf-sym)))
            ,@body)))))
+
+(defun bytes->array (bytes)
+  (let ((pointer (getf bytes 'bytes))
+        (length (getf bytes 'len)))
+    (unless (and pointer length)
+      (error "Argument does not contain the bytes and len fields"))
+    (convert-to-bytes (cffi:convert-from-foreign pointer (list :array :unsigned-char length)))))
+
+(defun bytes->string (bytes)
+  (babel:octets-to-string (bytes->array bytes) :encoding :utf-8))
+
+(defmacro with-bytes-string ((symbol string) &body body)
+  (alexandria:with-gensyms (fn value a string-sym)
+    `(let ((,string-sym ,string))
+       (labels ((,fn (,a) (let ((,symbol ,a)) ,@body)))
+         (if (and ,string-sym (plusp (length ,string-sym)))
+             (with-bytes-struct (,value (babel:string-to-octets ,string-sym :encoding :utf-8))
+               (,fn ,value))
+             (,fn amqp-empty-bytes))))))
+
+(defmacro with-bytes-strings ((&rest definitions) &body body)
+  (if definitions
+      `(with-bytes-string ,(car definitions)
+         (with-bytes-strings ,(cdr definitions)
+           ,@body))
+      `(progn ,@body)))
+
+(defun call-with-timeval (fn time)
+  (if time
+      (cffi:with-foreign-objects ((native-timeout '(:struct timeval)))
+        (multiple-value-bind (secs microsecs) (truncate time 1000000)
+          (setf (cffi:foreign-slot-value native-timeout '(:struct timeval) 'tv-sec) secs)
+          (setf (cffi:foreign-slot-value native-timeout '(:struct timeval) 'tv-usec) microsecs)
+          (funcall fn native-timeout)))
+      (funcall fn (cffi-sys:null-pointer))))
+
+(defmacro with-foreign-timeval ((symbol time) &body body)
+  (alexandria:with-gensyms (arg-sym)
+    `(call-with-timeval #'(lambda (,arg-sym) (let ((,symbol ,arg-sym)) ,@body)) ,time)))
