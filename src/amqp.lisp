@@ -19,6 +19,11 @@
                  :initarg :routing-key
                  :reader envelope/routing-key)))
 
+(defmethod print-object ((obj envelope) stream)
+  (print-unreadable-safely (channel consumer-tag delivery-tag exchange routing-key) obj stream
+    (format stream "CHANNEL ~s CONSUMER-TAG ~s DELIVERY-TAG ~s EXCHANGE ~s ROUTING-KEY ~s"
+            channel consumer-tag delivery-tag exchange routing-key)))
+
 (defun fail-if-null (ptr)
   (when (cffi-sys:null-pointer-p ptr)
     (error "Failed"))
