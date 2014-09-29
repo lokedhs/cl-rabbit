@@ -2,6 +2,23 @@
 
 (declaim (optimize (speed 0) (safety 3) (debug 3)))
 
+(defclass envelope ()
+  ((channel      :type integer
+                 :initarg :channel
+                 :reader envelope/channel)
+   (consumer-tag :type string
+                 :initarg :consumer-tag
+                 :reader envelope/consumer-tag)
+   (delivery-tag :type integer
+                 :initarg :delivery-tag
+                 :reader envelope/delivery-tag)
+   (exchange     :type string
+                 :initarg :exchange
+                 :reader envelope/exchange)
+   (routing-key  :type string
+                 :initarg :routing-key
+                 :reader envelope/routing-key)))
+
 (defun fail-if-null (ptr)
   (when (cffi-sys:null-pointer-p ptr)
     (error "Failed"))
@@ -32,6 +49,9 @@
   (verify-status (amqp-socket-open socket host port)))
 
 (defun login-sasl-plain (state vhost user password &key (channel-max 0) (frame-max 131072) (heartbeat 0))
+  (check-type vhost string)
+  (check-type user string)
+  (check-type password string)
   (let ((reply (amqp-login-sasl-plain state vhost
                                       channel-max frame-max
                                       heartbeat :amqp-sasl-method-plain user password)))
@@ -90,22 +110,36 @@
       (verify-rpc-reply (amqp-get-rpc-reply state))
       (bytes->string (cffi:foreign-slot-value result '(:struct amqp-basic-consume-ok-t) 'consumer-tag)))))
 
+(defun process-consume-library-error (state)
+  (cffi:with-foreign-objects ((foreign-frame '(:struct amqp-frame-t)))
+    (verify-status (amqp-simple-wait-frame state foreign-frame))
+    (when (= (cffi:foreign-slot-value foreign-frame '(:struct amqp-frame-t) 'frame-type)
+             amqp-frame-method)
+      (error "Frame errors not currently handled"))))
+
 (defun consume-message (state &key timeout)
   (check-type timeout (or null integer))
   (with-foreign-timeval (native-timeout timeout)
     (cffi:with-foreign-objects ((envelope '(:struct amqp-envelope-t)))
-      (let ((result (amqp-consume-message state envelope native-timeout 0)))
-        (verify-rpc-reply result)
-        (unwind-protect
-             (flet ((getval (slot-name)
-                      (cffi:foreign-slot-value envelope '(:struct amqp-envelope-t) slot-name)))
-               (let ((channel (getval 'channel))
-                     (consumer-tag (bytes->string (getval 'consumer-tag)))
-                     (delivery-tag (getval 'delivery-tag))
-                     (exchange (bytes->string (getval 'exchange)))
-                     (routing-key (bytes->string (getval 'routing-key))))
-                 (values channel consumer-tag delivery-tag exchange routing-key)))
-          (amqp-destroy-envelope envelope))))))
+      (let* ((result (amqp-consume-message state envelope native-timeout 0))
+             (status (getf result 'reply-type)))
+        (cond ((= status (cffi:foreign-enum-value 'amqp-response-type-enum :amqp-response-normal))
+               (unwind-protect
+                    (flet ((getval (slot-name)
+                             (cffi:foreign-slot-value envelope '(:struct amqp-envelope-t) slot-name)))
+                      (make-instance 'envelope
+                                     :channel (getval 'channel)
+                                     :consumer-tag (bytes->string (getval 'consumer-tag))
+                                     :delivery-tag (getval 'delivery-tag)
+                                     :exchange (bytes->string (getval 'exchange))
+                                     :routing-key (bytes->string (getval 'routing-key))))
+                 (amqp-destroy-envelope envelope)))
+
+              ;; Treat library errors
+              ((and (= status (cffi:foreign-enum-value 'amqp-response-type-enum :amqp-response-library-exception))
+                    (= (getf result 'library-error)
+                       (cffi:foreign-enum-value 'amqp-status-enum :amqp-status-unexpected-state)))
+               (process-consume-library-error state)))))))
 
 (defmacro with-connection ((conn) &body body)
   (let ((conn-sym (gensym "CONN-")))
@@ -116,7 +150,7 @@
          (destroy-connection ,conn-sym)))))
 
 (defun send-batch (conn queue-name)
-  (basic-publish conn 1 "amq.direct" queue-name #(97 98 99 10)))
+  (basic-publish conn 1 "amq.direct" queue-name (babel:string-to-octets "this is the message content" :encoding :utf-8)))
 
 (defun test-send ()
   (with-connection (conn)
