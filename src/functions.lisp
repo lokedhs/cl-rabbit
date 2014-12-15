@@ -61,6 +61,37 @@
   (properties :pointer)
   (body (:struct amqp-bytes-t)))
 
+(cffi:defcfun ("amqp_exchange_declare" amqp-exchange-declare) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (exchange (:struct amqp-bytes-t))
+  (type (:struct amqp-bytes-t))
+  (passive amqp-boolean-t)
+  (durable amqp-boolean-t)
+  (arguments (:struct amqp-table-t)))
+
+(cffi:defcfun ("amqp_exchange_delete" amqp-exchange-delete) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (exchange (:struct amqp-bytes-t))
+  (if-unused amqp-boolean-t))
+
+(cffi:defcfun ("amqp_exchange_bind" amqp-exchange-bind) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (destination (:struct amqp-bytes-t))
+  (source (:struct amqp-bytes-t))
+  (routing-key (:struct amqp-bytes-t))
+  (arguments (:struct amqp-table-t)))
+
+(cffi:defcfun ("amqp_exchange_unbind" amqp-exchange-unbind) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (destination (:struct amqp-bytes-t))
+  (source (:struct amqp-bytes-t))
+  (routing-key (:struct amqp-bytes-t))
+  (arguments (:struct amqp-table-t)))
+
 (cffi:defcfun ("amqp_queue_declare" amqp-queue-declare) :pointer #+nil(:pointer (:struct amqp-queue-declare-ok-t))
   (state amqp-connection-state-t)
   (channel amqp-channel-t)
@@ -72,6 +103,14 @@
   (arguments (:struct amqp-table-t)))
 
 (cffi:defcfun ("amqp_queue_bind" amqp-queue-bind) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (queue (:struct amqp-bytes-t))
+  (exchange (:struct amqp-bytes-t))
+  (routing-key (:struct amqp-bytes-t))
+  (arguments (:struct amqp-table-t)))
+
+(cffi:defcfun ("amqp_queue_unbind" amqp-queue-unbind) :pointer
   (state amqp-connection-state-t)
   (channel amqp-channel-t)
   (queue (:struct amqp-bytes-t))
