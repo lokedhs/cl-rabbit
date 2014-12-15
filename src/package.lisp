@@ -8,6 +8,7 @@
            #:consume-message
            #:queue-declare
            #:queue-bind
+           #:queue-unbind
            #:basic-consume
            #:basic-publish
            #:with-connection
@@ -22,7 +23,11 @@
            #:envelope
            #:message
            #:rabbitmq-server-error
-           #:rabbitmq-error))
+           #:rabbitmq-error
+           #:exchange-declare
+           #:exchange-delete
+           #:exchange-bind
+           #:exchange-unbind))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)

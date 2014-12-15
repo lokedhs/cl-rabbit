@@ -1,15 +1,24 @@
 (in-package :cl-rabbit.examples)
 
-(defun send-batch (conn queue-name)
-  (basic-publish conn 1 "amq.direct" queue-name (babel:string-to-octets "this is the message content" :encoding :utf-8)))
-
 (defun test-send ()
   (with-connection (conn)
     (let ((socket (tcp-socket-new conn)))
       (socket-open socket "localhost" 5672)
       (login-sasl-plain conn "/" "guest" "guest")
       (channel-open conn 1)
-      (send-batch conn "foo"))))
+      (basic-publish conn 1
+                     :exchange "amq.fanout"
+                     :body (babel:string-to-octets "this is the message content" :encoding :utf-8)))))
+
+(defun test-send2 ()
+  (with-connection (conn)
+    (let ((socket (tcp-socket-new conn)))
+      (socket-open socket "localhost" 5672)
+      (login-sasl-plain conn "/" "guest" "guest")
+      (channel-open conn 1)
+      (basic-publish conn 1
+                     :exchange "test-ex"
+                     :body (babel:string-to-octets "this is the message content" :encoding :utf-8)))))
 
 (defun recv-loop (conn)
   (maybe-release-buffers conn)
@@ -22,7 +31,21 @@
       (login-sasl-plain conn "/" "guest" "guest")
       (channel-open conn 1)
       (let ((queue-name (queue-declare conn 1 :auto-delete t :queue "foo")))
-        (queue-bind conn 1 queue-name "amq.direct" "foo")
+        (queue-bind conn 1 :queue queue-name :exchange "amq.fanout")
+        (basic-consume conn 1 queue-name)
+        (let ((result (recv-loop conn)))
+          (format t "Got message: ~s, content: ~s" result (babel:octets-to-string (message/body (envelope/message result))
+                                                                                  :encoding :utf-8)))))))
+
+(defun test-recv2 ()
+  (with-connection (conn)
+    (let ((socket (tcp-socket-new conn)))
+      (socket-open socket "localhost" 5672)
+      (login-sasl-plain conn "/" "guest" "guest")
+      (channel-open conn 1)
+      (exchange-declare conn 1 "test-ex" "fanout")
+      (let ((queue-name (queue-declare conn 1 :auto-delete t)))
+        (queue-bind conn 1 :queue queue-name :exchange "test-ex")
         (basic-consume conn 1 queue-name)
         (let ((result (recv-loop conn)))
           (format t "Got message: ~s, content: ~s" result (babel:octets-to-string (message/body (envelope/message result))
