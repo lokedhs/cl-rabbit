@@ -2,6 +2,23 @@
 
 (declaim (optimize (speed 0) (safety 3) (debug 3)))
 
+(define-condition rabbitmq-error (error)
+  ((type :type keyword
+         :initarg :type
+         :reader rabbitmq-error/type
+         :documentation "The response type as returned by the AMQP call"))
+  (:report (lambda (condition out)
+             (format out "AMQP error: ~s" (rabbitmq-error/type condition))))
+  (:documentation "Error that is raised when an AMQP call fails"))
+
+(define-condition rabbitmq-server-error (error)
+  ((type :type keyword
+         :initarg :type
+         :reader rabbitmq-server-error/type
+         :documentation "Exception type as returned by the server"))
+  (:report (lambda (condition out)
+             (format out "RPC error: ~s" (slot-value condition 'type)))))
+
 (defclass message ()
   ((body :type (simple-array (unsigned-byte 8) (*))
          :initarg :body
@@ -47,14 +64,16 @@
   ptr)
 
 (defun verify-status (status)
-  (unless (= status (cffi:foreign-enum-value 'amqp-status-enum :amqp-status-ok))
-    (error "Failed: ~a" status))
-  status)
+  (let ((type (cffi:foreign-enum-keyword 'amqp-status-enum status)))
+    (unless (eq type :amqp-status-ok)
+      (error 'rabbitmq-error :type type))
+    type))
 
 (defun verify-rpc-reply (reply)
-  (let* ((status (getf reply 'reply-type)))
-    (unless (= status (cffi:foreign-enum-value 'amqp-response-type-enum :amqp-response-normal))
-      (error "Failed: ~a" status))))
+  (let* ((status (getf reply 'reply-type))
+         (type (cffi:foreign-enum-keyword 'amqp-response-type-enum status)))
+    (unless (eq type :amqp-response-normal)
+      (error 'rabbitmq-server-error :type type))))
 
 (defun new-connection ()
   (fail-if-null (amqp-new-connection)))
