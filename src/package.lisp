@@ -20,7 +20,9 @@
            #:envelope/routing-key
            #:envelope/message
            #:envelope
-           #:message))
+           #:message
+           #:rabbitmq-server-error
+           #:rabbitmq-error))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)
