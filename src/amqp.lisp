@@ -164,6 +164,9 @@
                        (cffi:foreign-enum-value 'amqp-status-enum :amqp-status-unexpected-state)))
                (process-consume-library-error state)))))))
 
+(defun maybe-release-buffers (conn)
+  (amqp-maybe-release-buffers conn))
+
 (defmacro with-connection ((conn) &body body)
   (let ((conn-sym (gensym "CONN-")))
     `(let ((,conn-sym (new-connection)))
@@ -171,29 +174,3 @@
             (let ((,conn ,conn-sym))
               ,@body)
          (destroy-connection ,conn-sym)))))
-
-(defun send-batch (conn queue-name)
-  (basic-publish conn 1 "amq.direct" queue-name (babel:string-to-octets "this is the message content" :encoding :utf-8)))
-
-(defun test-send ()
-  (with-connection (conn)
-    (let ((socket (tcp-socket-new conn)))
-      (socket-open socket "localhost" 5672)
-      (login-sasl-plain conn "/" "guest" "guest")
-      (channel-open conn 1)
-      (send-batch conn "foo"))))
-
-(defun recv-loop (conn)
-  (amqp-maybe-release-buffers conn)
-  (consume-message conn))
-
-(defun test-recv ()
-  (with-connection (conn)
-    (let ((socket (tcp-socket-new conn)))
-      (socket-open socket "localhost" 5672)
-      (login-sasl-plain conn "/" "guest" "guest")
-      (channel-open conn 1)
-      (let ((queue-name (queue-declare conn 1 :auto-delete t :queue "foo")))
-        (queue-bind conn 1 queue-name "amq.direct" "foo")
-        (basic-consume conn 1 queue-name)
-        (recv-loop conn)))))
