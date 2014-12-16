@@ -1,5 +1,6 @@
 (in-package :cl-rabbit)
 
+(include "stdlib.h")
 (include "stdint.h")
 (include "amqp.h")
 (include "amqp_framing.h")
