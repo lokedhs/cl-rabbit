@@ -27,7 +27,10 @@
            #:exchange-declare
            #:exchange-delete
            #:exchange-bind
-           #:exchange-unbind))
+           #:exchange-unbind
+           #:new-connection
+           #:destroy-connection
+           #:channel-flow))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)

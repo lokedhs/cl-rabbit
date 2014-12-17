@@ -75,6 +75,10 @@
     (unless (eq type :amqp-response-normal)
       (error 'rabbitmq-server-error :type type))))
 
+(defun verify-rpc-framing-call (state result)
+  (when (cffi:null-pointer-p result)
+    (verify-rpc-reply (amqp-get-rpc-reply state))))
+
 (defun new-connection ()
   (fail-if-null (amqp-new-connection)))
 
@@ -100,7 +104,17 @@
       (error "Illegal response from login"))))
 
 (defun channel-open (state channel)
-  (fail-if-null (amqp-channel-open state channel)))
+  (check-type channel integer)
+  (verify-rpc-framing-call state (amqp-channel-open state channel)))
+
+(defun channel-flow (state channel active)
+  (check-type channel integer)
+  (verify-rpc-framing-call state (amqp-channel-flow state channel (if active 1 0))))
+
+(defun channel-close (state channel code)
+  (check-type channel integer)
+  (check-type code integer)
+  (verify-rpc-framing-call state (amqp-channel-close state channel code)))
 
 (defun basic-publish (state channel &key exchange routing-key mandatory immediate body)
   (check-type channel integer)
@@ -120,15 +134,14 @@
   (check-type type string)
   (with-bytes-strings ((exchange-bytes exchange)
                        (type-bytes type))
-    (amqp-exchange-declare state channel exchange-bytes type-bytes (if passive 1 0) (if durable 1 0) amqp-empty-table)
-    (verify-rpc-reply (amqp-get-rpc-reply state))))
+    (verify-rpc-framing-call state (amqp-exchange-declare state channel exchange-bytes type-bytes
+                                                          (if passive 1 0) (if durable 1 0) amqp-empty-table))))
 
 (defun exchange-delete (state channel exchange &key if-unused)
   (check-type channel integer)
   (check-type exchange string)
   (with-bytes-strings ((exchange-bytes exchange))
-    (amqp-exchange-delete state channel exchange-bytes (if if-unused 1 0))
-    (verify-rpc-reply (amqp-get-rpc-reply state))))
+    (verify-rpc-framing-call state (amqp-exchange-delete state channel exchange-bytes (if if-unused 1 0)))))
 
 (defun exchange-bind (state channel &key destination source routing-key)
   (check-type channel integer)
@@ -138,8 +151,9 @@
   (with-bytes-strings ((destination-bytes destination)
                        (source-bytes source)
                        (routing-key-bytes routing-key))
-    (amqp-exchange-bind state channel destination-bytes source-bytes routing-key-bytes amqp-empty-table)
-    (verify-rpc-reply (amqp-get-rpc-reply state))))
+    (verify-rpc-framing-call state
+                             (amqp-exchange-bind state channel destination-bytes source-bytes
+                                                 routing-key-bytes amqp-empty-table))))
 
 (defun exchange-unbind (state channel &key destination source routing-key)
   (check-type channel integer)
@@ -149,8 +163,9 @@
   (with-bytes-strings ((destination-bytes destination)
                        (source-bytes source)
                        (routing-key-bytes routing-key))
-    (amqp-exchange-unbind state channel destination-bytes source-bytes routing-key-bytes amqp-empty-table)
-    (verify-rpc-reply (amqp-get-rpc-reply state))))
+    (verify-rpc-framing-call state
+                             (amqp-exchange-unbind state channel destination-bytes source-bytes
+                                                   routing-key-bytes amqp-empty-table))))
 
 (defun queue-declare (state channel &key queue passive durable exclusive auto-delete)
   (check-type channel integer)
@@ -173,8 +188,9 @@
   (with-bytes-strings ((queue-bytes queue)
                        (exchange-bytes exchange)
                        (routing-key-bytes routing-key))
-    (amqp-queue-bind state channel queue-bytes exchange-bytes routing-key-bytes amqp-empty-table)
-    (verify-rpc-reply (amqp-get-rpc-reply state))
+    (verify-rpc-framing-call state
+                             (amqp-queue-bind state channel queue-bytes exchange-bytes
+                                              routing-key-bytes amqp-empty-table))
     nil))
 
 (defun queue-unbind (state channel &key queue exchange routing-key)
@@ -185,8 +201,9 @@
   (with-bytes-strings ((queue-bytes queue)
                        (exchange-bytes exchange)
                        (routing-key-bytes routing-key))
-    (amqp-queue-unbind state channel queue-bytes exchange-bytes routing-key-bytes amqp-empty-table)
-    (verify-rpc-reply (amqp-get-rpc-reply state))
+    (verify-rpc-framing-call state
+                             (amqp-queue-unbind state channel queue-bytes exchange-bytes
+                                                routing-key-bytes amqp-empty-table))
     nil))
 
 (defun basic-consume (state channel queue &key consumer-tag no-local no-ack exclusive)

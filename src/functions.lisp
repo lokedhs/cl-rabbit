@@ -51,6 +51,16 @@
   (state amqp-connection-state-t)
   (channel amqp-channel-t))
 
+(cffi:defcfun ("amqp_channel_flow" amqp-channel-flow) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (active (amqp-boolean-t)))
+
+(cffi:defcfun ("amqp_channel_close" amqp-channel-close) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (code :int))
+
 (cffi:defcfun ("amqp_basic_publish" amqp-basic-publish) :int
   (state amqp-connection-state-t)
   (channel amqp-channel-t)
