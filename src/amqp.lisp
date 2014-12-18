@@ -93,15 +93,18 @@
   (check-type port alexandria:positive-integer)
   (verify-status (amqp-socket-open socket host port)))
 
-(defun login-sasl-plain (state vhost user password &key (channel-max 0) (frame-max 131072) (heartbeat 0))
+(defun login-sasl-plain (state vhost user password &key (channel-max 0) (frame-max 131072) (heartbeat 0) properties)
   (check-type vhost string)
   (check-type user string)
   (check-type password string)
-  (let ((reply (amqp-login-sasl-plain state vhost
-                                      channel-max frame-max
-                                      heartbeat :amqp-sasl-method-plain user password)))
-    (unless (= (getf reply 'reply-type) (cffi:foreign-enum-value 'amqp-response-type-enum :amqp-response-normal))
-      (error "Illegal response from login"))))
+  (with-amqp-table (table properties)
+    (cffi:with-foreign-objects ((native-table '(:struct amqp-table-t)))
+      (setf (cffi:mem-ref native-table '(:struct amqp-table-t)) table)
+      (let ((reply (amqp-login-sasl-plain-with-properties state vhost
+                                                          channel-max frame-max heartbeat native-table
+                                                          :amqp-sasl-method-plain user password)))
+        (unless (= (getf reply 'reply-type) (cffi:foreign-enum-value 'amqp-response-type-enum :amqp-response-normal))
+          (error "Illegal response from login"))))))
 
 (defun channel-open (state channel)
   (check-type channel integer)

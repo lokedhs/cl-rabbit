@@ -47,6 +47,17 @@
   (user :string)
   (password :string))
 
+(cffi:defcfun ("amqp_login_with_properties" amqp-login-sasl-plain-with-properties) (:struct amqp-rpc-reply-t)
+  (state amqp-connection-state-t)
+  (vhost :string)
+  (channel-max :int)
+  (frame-max :int)
+  (heartbeat :int)
+  (properties (:pointer (:struct amqp-table-t)))
+  (sasl-method amqp-sasl-method-enum)
+  (user :string)
+  (password :string))
+
 (cffi:defcfun ("amqp_channel_open" amqp-channel-open) :pointer #+nil(:pointer (:struct amqp-channel-open-ok-t))
   (state amqp-connection-state-t)
   (channel amqp-channel-t))

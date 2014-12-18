@@ -110,8 +110,13 @@
 (ctype amqp-method-number-t "amqp_method_number_t")
 (ctype amqp-channel-t "amqp_channel_t")
 (ctype amqp-flags-t "amqp_flags_t")
+(ctype int8-t "int8_t")
 (ctype uint8-t "uint8_t")
+(ctype int16-t "int16_t")
+(ctype uint16-t "uint16_t")
+(ctype int32-t "int32_t")
 (ctype uint32-t "uint32_t")
+(ctype int64-t "int64_t")
 (ctype uint64-t "uint64_t")
 (ctype time-t "time_t")
 (ctype suseconds-t "suseconds_t")
@@ -132,10 +137,6 @@
 (cstruct amqp-bytes-t "amqp_bytes_t"
          (len "len" :type size-t)
          (bytes "bytes" :type :pointer))
-
-(cstruct amqp-table-t "amqp_table_t"
-         (num-entries "num_entries" :type :int)
-         (entries "entries" :type :pointer))
 
 (cstruct amqp-channel-open-ok-t "amqp_channel_open_ok_t"
          (channel-id "channel_id" :type (:struct amqp-bytes-t)))
@@ -182,6 +183,40 @@
 (cstruct amqp-frame-t "amqp_frame_t"
          (frame-type "frame_type" :type uint8-t)
          (channel "channel" :type amqp-channel-t))
+
+(cstruct amqp-decimal-t "amqp_decimal_t"
+         (decimals "decimals" :type uint8-t)
+         (value "value" :type uint32-t))
+
+(cstruct amqp-array-t "amqp_array_t"
+         (num-entries "num_entries" :type :int)
+         (entries "entries" :type (:pointer (:struct amqp-field-value-t))))
+
+(cstruct amqp-field-value-t "amqp_field_value_t"
+         (kind "kind" :type uint8-t)
+         (value-boolean "value.boolean" :type amqp-boolean-t)
+         (value-i8 "value.i8" :type int8-t)
+         (value-u8 "value.u8" :type uint8-t)
+         (value-i16 "value.i16" :type int16-t)
+         (value-u16 "value.u16" :type uint16-t)
+         (value-i32 "value.i32" :type uint32-t)
+         (value-u32 "value.u32" :type int32-t)
+         (value-i64 "value.i64" :type int64-t)
+         (value-u64 "value.u64" :type uint64-t)
+         (value-f32 "value.f32" :type :float)
+         (value-f64 "value.f64" :type :double)
+         (decimal "value.decimal" :type amqp-decimal-t)
+         (bytes "value.bytes" :type amqp-bytes-t)
+         (table "value.table" :type amqp-table-t)
+         (array "value.array" :type amqp-array-t))
+
+(cstruct amqp-table-entry-t "amqp_table_entry_t"
+         (key "key" :type (:struct amqp-bytes-t))
+         (value "value" :type (:struct amqp-field-value-t)))
+
+(cstruct amqp-table-t "amqp_table_t"
+         (num-entries "num_entries" :type :int)
+         (entries "entries" :type (:pointer (:struct amqp-table-entry-t))))
 
 (cvar ("amqp_empty_table" amqp-empty-table) (:struct amqp-table-t))
 (cvar ("amqp_empty_bytes" amqp-empty-bytes) (:struct amqp-bytes-t))
