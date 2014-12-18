@@ -190,7 +190,11 @@
 
 (cstruct amqp-array-t "amqp_array_t"
          (num-entries "num_entries" :type :int)
-         (entries "entries" :type (:pointer (:struct amqp-field-value-t))))
+         (entries "entries" :type :pointer))
+
+(cstruct amqp-table-t "amqp_table_t"
+         (num-entries "num_entries" :type :int)
+         (entries "entries" :type :pointer))
 
 (cstruct amqp-field-value-t "amqp_field_value_t"
          (kind "kind" :type uint8-t)
@@ -213,10 +217,6 @@
 (cstruct amqp-table-entry-t "amqp_table_entry_t"
          (key "key" :type (:struct amqp-bytes-t))
          (value "value" :type (:struct amqp-field-value-t)))
-
-(cstruct amqp-table-t "amqp_table_t"
-         (num-entries "num_entries" :type :int)
-         (entries "entries" :type (:pointer (:struct amqp-table-entry-t))))
 
 (cvar ("amqp_empty_table" amqp-empty-table) (:struct amqp-table-t))
 (cvar ("amqp_empty_bytes" amqp-empty-bytes) (:struct amqp-bytes-t))
