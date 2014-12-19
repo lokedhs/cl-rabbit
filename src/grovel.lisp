@@ -178,7 +178,7 @@
          (value-u64 "value.u64" :type uint64-t)
          (value-f32 "value.f32" :type :float)
          (value-f64 "value.f64" :type :double)
-         (value-decimal "value.decimal" :type amqp-decimal-t)
+         (value-decimal "value.decimal" :type (:struct amqp-decimal-t))
          (value-bytes "value.bytes" :type (:struct amqp-bytes-t))
          (value-table "value.table" :type (:struct amqp-table-t))
          (value-array "value.array" :type (:struct amqp-array-t)))
