@@ -85,43 +85,61 @@
   (alexandria:with-gensyms (arg-sym)
     `(call-with-timeval #'(lambda (,arg-sym) (let ((,symbol ,arg-sym)) ,@body)) ,time)))
 
+(defparameter *field-kind-types*
+  '((:amqp-field-kind-boolean . value-boolean)
+    (:amqp-field-kind-i8 . value-i8)
+    (:amqp-field-kind-i8 . value-i8)
+    (:amqp-field-kind-u8 . value-u8)
+    (:amqp-field-kind-i16 . value-i16)
+    (:amqp-field-kind-u16 . value-u16)
+    (:amqp-field-kind-i32 . value-i32)
+    (:amqp-field-kind-u32 . value-u32)
+    (:amqp-field-kind-i64 . value-i64)
+    (:amqp-field-kind-u64 . value-u64)
+    (:amqp-field-kind-f32 . value-f32)
+    (:amqp-field-kind-f64 . value-f64)
+    (:amqp-field-kind-decimal . value-decimal)
+    (:amqp-field-kind-utf8 . value-utf8)
+    (:amqp-field-kind-array . value-array)
+    (:amqp-field-kind-timestamp . value-timestamp)
+    (:amqp-field-kind-table . value-table)
+    (:amqp-field-kind-void . value-void)
+    (:amqp-field-kind-bytes . value-bytes)))
+
 (defun call-with-amqp-table (fn values)
   (let ((length (length values))
         (allocated-values nil))
 
-    (unwind-protect
-         (cffi:with-foreign-objects ((table '(:struct amqp-table-t))
-                                     (content '(:struct amqp-table-entry-t) length))
-           (loop
-              for (key . value) in values
-              for i from 0
-              for entryptr = (cffi:mem-aptr content '(:struct amqp-table-entry-t) i)
-              do (let* ((key-as-utf (babel:string-to-octets key :encoding :utf-8))
-                        (keyptr (array-to-foreign-char-array key-as-utf)))
-                   (push keyptr allocated-values)
-                   (setf (cffi:foreign-slot-value entryptr '(:struct amqp-table-entry-t) 'key)
-                         (list 'len (array-dimension key-as-utf 0) 'bytes keyptr))
-                   (etypecase value
-                     (string (let* ((val-utf (babel:string-to-octets value :encoding :utf-8))
-                                    (val-ptr (array-to-foreign-char-array val-utf)))
-                               (push val-ptr allocated-values)
-                               (setf (cffi:foreign-slot-value
-                                      (cffi:foreign-slot-value entryptr '(:struct amqp-table-entry-t) 'value)
-                                      '(:struct amqp-field-value-t)
-                                      'kind)
-                                     (char-code #\x))
-                               (setf (cffi:foreign-slot-value
-                                      (cffi:foreign-slot-value entryptr '(:struct amqp-table-entry-t) 'value)
-                                      '(:struct amqp-field-value-t)
-                                      'bytes)
-                                     val-ptr))))))
-           (setf (cffi:foreign-slot-value table '(:struct amqp-table-t) 'num-entries) length)
-           (setf (cffi:foreign-slot-value table '(:struct amqp-table-t) 'entries) content)
-           (funcall fn table))
+    (labels ((string-native (string)
+               (let* ((utf (babel:string-to-octets string :encoding :utf-8))
+                      (ptr (array-to-foreign-char-array utf)))
+                 (push ptr allocated-values)
+                 (list 'len (array-dimension utf 0) 'bytes ptr)))
 
-      ;; Unwind form
-      (dolist (ptr allocated-values)
-        (cffi:foreign-free ptr)))))
+             (typed-value (type value)
+               (let ((struct-entry-name (cdr (assoc type *field-kind-types*))))
+                 (unless struct-entry-name
+                   (error "Illegal kind: ~s" type))
+                 (list 'kind (cffi:foreign-enum-value 'amqp-field-value-kind-t type) struct-entry-name value)))
+
+             (make-field-value (value)
+               (etypecase value
+                 (string (typed-value :amqp-field-kind-bytes (string-native value)))
+                 ((integer #.(- (expt 2 31)) #.(1- (expt 2 31))) (typed-value :amqp-field-kind-i32 value)))))
+
+      (unwind-protect
+           (cffi:with-foreign-objects ((content '(:struct amqp-table-entry-t) length))
+             (loop
+                for (key . value) in values
+                for i from 0
+                do (setf (cffi:mem-aref content '(:struct amqp-table-entry-t) i)
+                         (list 'key (string-native key) 'value (make-field-value value))))
+             (let ((content-struct (list 'num-entries length 'entries content)))
+               (funcall fn content-struct)))
+
+        ;; Unwind form
+        (dolist (ptr allocated-values)
+          (cffi:foreign-free ptr))))))
 
 (defmacro with-amqp-table ((table values) &body body)
   (alexandria:with-gensyms (values-sym fn)

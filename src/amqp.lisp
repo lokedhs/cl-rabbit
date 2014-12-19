@@ -99,7 +99,7 @@
   (check-type password string)
   (with-amqp-table (table properties)
     (cffi:with-foreign-objects ((native-table '(:struct amqp-table-t)))
-      (setf (cffi:mem-ref native-table '(:struct amqp-table-t)) table)
+      (setf (cffi:mem-ref native-table '(:struct amqp-table-t)) (print table))
       (let ((reply (amqp-login-sasl-plain-with-properties state vhost
                                                           channel-max frame-max heartbeat native-table
                                                           :amqp-sasl-method-plain user password)))
@@ -131,14 +131,15 @@
                                          (if mandatory 1 0) (if immediate 1 0)
                                          (cffi-sys:null-pointer) body-val)))))
 
-(defun exchange-declare (state channel exchange type &key passive durable)
+(defun exchange-declare (state channel exchange type &key passive durable arguments)
   (check-type channel integer)
   (check-type exchange string)
   (check-type type string)
   (with-bytes-strings ((exchange-bytes exchange)
                        (type-bytes type))
-    (verify-rpc-framing-call state (amqp-exchange-declare state channel exchange-bytes type-bytes
-                                                          (if passive 1 0) (if durable 1 0) amqp-empty-table))))
+    (with-amqp-table (table arguments)
+      (verify-rpc-framing-call state (amqp-exchange-declare state channel exchange-bytes type-bytes
+                                                            (if passive 1 0) (if durable 1 0) table)))))
 
 (defun exchange-delete (state channel exchange &key if-unused)
   (check-type channel integer)
@@ -146,7 +147,7 @@
   (with-bytes-strings ((exchange-bytes exchange))
     (verify-rpc-framing-call state (amqp-exchange-delete state channel exchange-bytes (if if-unused 1 0)))))
 
-(defun exchange-bind (state channel &key destination source routing-key)
+(defun exchange-bind (state channel &key destination source routing-key arguments)
   (check-type channel integer)
   (check-type destination (or null string))
   (check-type source (or null string))
@@ -154,9 +155,10 @@
   (with-bytes-strings ((destination-bytes destination)
                        (source-bytes source)
                        (routing-key-bytes routing-key))
-    (verify-rpc-framing-call state
-                             (amqp-exchange-bind state channel destination-bytes source-bytes
-                                                 routing-key-bytes amqp-empty-table))))
+    (with-amqp-table (table arguments)
+      (verify-rpc-framing-call state
+                               (amqp-exchange-bind state channel destination-bytes source-bytes
+                                                   routing-key-bytes table)))))
 
 (defun exchange-unbind (state channel &key destination source routing-key)
   (check-type channel integer)
@@ -170,20 +172,21 @@
                              (amqp-exchange-unbind state channel destination-bytes source-bytes
                                                    routing-key-bytes amqp-empty-table))))
 
-(defun queue-declare (state channel &key queue passive durable exclusive auto-delete)
+(defun queue-declare (state channel &key queue passive durable exclusive auto-delete arguments)
   (check-type channel integer)
   (check-type queue (or null string))
   (with-bytes-string (queue-bytes queue)
-    (let ((result (amqp-queue-declare state channel queue-bytes (if passive 1 0) (if durable 1 0)
-                                      (if exclusive 1 0) (if auto-delete 1 0) amqp-empty-table)))
-      (verify-rpc-reply (amqp-get-rpc-reply state))
-      (values (bytes->string (cffi:foreign-slot-value result
-                                                      '(:struct amqp-queue-declare-ok-t)
-                                                      'queue))
-              (cffi:foreign-slot-value result '(:struct amqp-queue-declare-ok-t) 'message-count)
-              (cffi:foreign-slot-value result '(:struct amqp-queue-declare-ok-t) 'consumer-count)))))
+    (with-amqp-table (table arguments)
+      (let ((result (amqp-queue-declare state channel queue-bytes (if passive 1 0) (if durable 1 0)
+                                        (if exclusive 1 0) (if auto-delete 1 0) table)))
+        (verify-rpc-reply (amqp-get-rpc-reply state))
+        (values (bytes->string (cffi:foreign-slot-value result
+                                                        '(:struct amqp-queue-declare-ok-t)
+                                                        'queue))
+                (cffi:foreign-slot-value result '(:struct amqp-queue-declare-ok-t) 'message-count)
+                (cffi:foreign-slot-value result '(:struct amqp-queue-declare-ok-t) 'consumer-count))))))
 
-(defun queue-bind (state channel &key queue exchange routing-key)
+(defun queue-bind (state channel &key queue exchange routing-key arguments)
   (check-type channel integer)
   (check-type queue (or null string))
   (check-type exchange (or null string))
@@ -191,12 +194,13 @@
   (with-bytes-strings ((queue-bytes queue)
                        (exchange-bytes exchange)
                        (routing-key-bytes routing-key))
-    (verify-rpc-framing-call state
-                             (amqp-queue-bind state channel queue-bytes exchange-bytes
-                                              routing-key-bytes amqp-empty-table))
+    (with-amqp-table (table arguments)
+      (verify-rpc-framing-call state
+                               (amqp-queue-bind state channel queue-bytes exchange-bytes
+                                                routing-key-bytes table)))
     nil))
 
-(defun queue-unbind (state channel &key queue exchange routing-key)
+(defun queue-unbind (state channel &key queue exchange routing-key arguments)
   (check-type channel integer)
   (check-type queue (or null string))
   (check-type exchange (or null string))
@@ -204,21 +208,23 @@
   (with-bytes-strings ((queue-bytes queue)
                        (exchange-bytes exchange)
                        (routing-key-bytes routing-key))
-    (verify-rpc-framing-call state
-                             (amqp-queue-unbind state channel queue-bytes exchange-bytes
-                                                routing-key-bytes amqp-empty-table))
-    nil))
+    (with-amqp-table (table arguments)
+      (verify-rpc-framing-call state
+                               (amqp-queue-unbind state channel queue-bytes exchange-bytes
+                                                  routing-key-bytes table))
+      nil)))
 
-(defun basic-consume (state channel queue &key consumer-tag no-local no-ack exclusive)
+(defun basic-consume (state channel queue &key consumer-tag no-local no-ack exclusive arguments)
   (check-type channel integer)
   (check-type queue string)
   (check-type consumer-tag (or null string))
   (with-bytes-strings ((queue-bytes queue)
                        (consumer-tag-bytes consumer-tag))
-    (let ((result (amqp-basic-consume state channel queue-bytes consumer-tag-bytes
-                                      (if no-local 1 0) (if no-ack 1 0) (if exclusive 1 0) amqp-empty-table)))
-      (verify-rpc-reply (amqp-get-rpc-reply state))
-      (bytes->string (cffi:foreign-slot-value result '(:struct amqp-basic-consume-ok-t) 'consumer-tag)))))
+    (with-amqp-table (table arguments)
+      (let ((result (amqp-basic-consume state channel queue-bytes consumer-tag-bytes
+                                        (if no-local 1 0) (if no-ack 1 0) (if exclusive 1 0) table)))
+        (verify-rpc-reply (amqp-get-rpc-reply state))
+        (bytes->string (cffi:foreign-slot-value result '(:struct amqp-basic-consume-ok-t) 'consumer-tag))))))
 
 (defun process-consume-library-error (state)
   (cffi:with-foreign-objects ((foreign-frame '(:struct amqp-frame-t)))
