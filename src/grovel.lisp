@@ -197,7 +197,7 @@
          (correlation-id "correlation_id" :type (:struct amqp-bytes-t))
          (reply-to "reply_to" :type (:struct amqp-bytes-t))
          (expiration "expiration" :type (:struct amqp-bytes-t))
-         (message_id "message_id" :type (:struct amqp-bytes-t))
+         (message-id "message_id" :type (:struct amqp-bytes-t))
          (timestamp "timestamp" :type uint64-t)
          (type "type" :type (:struct amqp-bytes-t))
          (user-id "user_id" :type (:struct amqp-bytes-t))
