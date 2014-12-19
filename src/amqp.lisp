@@ -99,7 +99,7 @@
   (check-type password string)
   (with-amqp-table (table properties)
     (cffi:with-foreign-objects ((native-table '(:struct amqp-table-t)))
-      (setf (cffi:mem-ref native-table '(:struct amqp-table-t)) (print table))
+      (setf (cffi:mem-ref native-table '(:struct amqp-table-t)) table)
       (let ((reply (amqp-login-sasl-plain-with-properties state vhost
                                                           channel-max frame-max heartbeat native-table
                                                           :amqp-sasl-method-plain user password)))
