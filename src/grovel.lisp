@@ -200,7 +200,7 @@
          (message_id "message_id" :type (:struct amqp-bytes-t))
          (timestamp "timestamp" :type uint64-t)
          (type "type" :type (:struct amqp-bytes-t))
-         (user_id "user_id" :type (:struct amqp-bytes-t))
+         (user-id "user_id" :type (:struct amqp-bytes-t))
          (app-id "app_id" :type (:struct amqp-bytes-t))
          (cluster-id "cluster_id" :type (:struct amqp-bytes-t)))
 
