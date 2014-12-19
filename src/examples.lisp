@@ -19,7 +19,7 @@
   (with-connection (conn)
     (let ((socket (tcp-socket-new conn)))
       (socket-open socket "localhost" 5672)
-      (login-sasl-plain conn "/" "guest" "guest" :properties '(("product" . "cl-rabbit")))
+      (login-sasl-plain conn "/" "guest" "guest")
       (channel-open conn 1)
       (exchange-declare conn 1 "test-ex" "topic")
       (let ((queue-name (queue-declare conn 1 :auto-delete t)))
