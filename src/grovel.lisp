@@ -1,6 +1,6 @@
 (in-package :cl-rabbit)
 
-#+darwin
+#+(or freebsd darwin)
 (progn
   (include "time.h")
   (include "sys/time.h"))
