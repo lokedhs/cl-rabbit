@@ -1,5 +1,10 @@
 (in-package :cl-rabbit)
 
+#+darwin
+(progn
+  (include "time.h")
+  (include "sys/time.h"))
+
 (include "amqp.h")
 (include "amqp_framing.h")
 (include "amqp_tcp_socket.h")
