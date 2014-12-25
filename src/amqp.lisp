@@ -111,16 +111,22 @@
 
 (defun channel-open (state channel)
   (check-type channel integer)
-  (verify-rpc-framing-call state (amqp-channel-open state channel)))
+  (unwind-protect
+       (verify-rpc-framing-call state (amqp-channel-open state channel))
+    (maybe-release-buffers state)))
 
 (defun channel-flow (state channel active)
   (check-type channel integer)
-  (verify-rpc-framing-call state (amqp-channel-flow state channel (if active 1 0))))
+  (unwind-protect
+       (verify-rpc-framing-call state (amqp-channel-flow state channel (if active 1 0)))
+    (maybe-release-buffers state)))
 
 (defun channel-close (state channel code)
   (check-type channel integer)
   (check-type code integer)
-  (verify-rpc-framing-call state (amqp-channel-close state channel code)))
+  (unwind-protect
+       (verify-rpc-framing-call state (amqp-channel-close state channel code))
+    (maybe-release-buffers state)))
 
 (defun basic-publish (state channel &key exchange routing-key mandatory immediate body)
   (check-type channel integer)
@@ -151,8 +157,10 @@
 (defun exchange-delete (state channel exchange &key if-unused)
   (check-type channel integer)
   (check-type exchange string)
-  (with-bytes-strings ((exchange-bytes exchange))
-    (verify-rpc-framing-call state (amqp-exchange-delete state channel exchange-bytes (if if-unused 1 0)))))
+  (unwind-protect
+       (with-bytes-strings ((exchange-bytes exchange))
+         (verify-rpc-framing-call state (amqp-exchange-delete state channel exchange-bytes (if if-unused 1 0))))
+    (maybe-release-buffers state)))
 
 (defun exchange-bind (state channel &key destination source routing-key arguments)
   (check-type channel integer)
@@ -217,14 +225,16 @@
   (check-type queue (or null string))
   (check-type exchange (or null string))
   (check-type routing-key (or null string))
-  (with-bytes-strings ((queue-bytes queue)
-                       (exchange-bytes exchange)
-                       (routing-key-bytes routing-key))
-    (with-amqp-table (table arguments)
-      (verify-rpc-framing-call state
-                               (amqp-queue-unbind state channel queue-bytes exchange-bytes
-                                                  routing-key-bytes table))
-      nil)))
+  (unwind-protect
+       (with-bytes-strings ((queue-bytes queue)
+                            (exchange-bytes exchange)
+                            (routing-key-bytes routing-key))
+         (with-amqp-table (table arguments)
+           (verify-rpc-framing-call state
+                                    (amqp-queue-unbind state channel queue-bytes exchange-bytes
+                                                       routing-key-bytes table))
+           nil))
+    (maybe-release-buffers state)))
 
 (defun basic-consume (state channel queue &key consumer-tag no-local no-ack exclusive arguments)
   (check-type channel integer)
