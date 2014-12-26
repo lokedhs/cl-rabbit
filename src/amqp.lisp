@@ -229,7 +229,7 @@ following property keywords are accepted:
 
            (if body
                (with-bytes-struct (body-val (etypecase body
-                                              (string (babel:octets-to-string body :encoding encoding))
+                                              (string (babel:string-to-octets body :encoding encoding))
                                               (vector body)))
                  (send-with-data body-val))
                ;; ELSE: body is nil, send a blank struct

@@ -9,7 +9,7 @@
       (basic-publish conn 1
                      :exchange "test-ex"
                      :routing-key "xx"
-                     :body (babel:string-to-octets "this is the message content" :encoding :utf-8)
+                     :body "this is the message content"
                      :properties '((:app-id . "Application id"))))))
 
 (defun test-recv ()
