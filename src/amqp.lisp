@@ -132,14 +132,19 @@
   (check-type channel integer)
   (check-type exchange (or null string))
   (check-type routing-key (or null string))
-  (check-type body array)
+  (check-type body (or null array))
   (unwind-protect
        (with-bytes-strings ((exchange-bytes exchange)
                             (routing-key-bytes routing-key))
-         (with-bytes-struct (body-val body)
-           (verify-status (amqp-basic-publish state channel exchange-bytes routing-key-bytes
-                                              (if mandatory 1 0) (if immediate 1 0)
-                                              (cffi-sys:null-pointer) body-val))))
+         (labels ((send (data)
+                    (verify-status (amqp-basic-publish state channel exchange-bytes routing-key-bytes
+                                                       (if mandatory 1 0) (if immediate 1 0)
+                                                       (cffi-sys:null-pointer) data))))
+           (if body
+               (with-bytes-struct (body-val body)
+                 (send body-val))
+               ;; ELSE: body is nil, send a blank struct
+               (send (list 'len 0 'bytes (cffi-sys:null-pointer))))))
     (maybe-release-buffers state)))
 
 (defun exchange-declare (state channel exchange type &key passive durable arguments)
