@@ -19,16 +19,19 @@
 
 (cffi:defcfun ("amqp_maybe_release_buffers" amqp-maybe-release-buffers) :void
   (state amqp-connection-state-t))
+
 (cffi:defcfun ("amqp_maybe_release_buffers_on_channel" amqp-maybe-release-buffers-on-channel) :void
   (state amqp-connection-state-t)
   (channel amqp-channel-t))
 
 (cffi:defcfun ("amqp_new_connection" amqp-new-connection) amqp-connection-state-t)
+
 (cffi:defcfun ("amqp_destroy_connection" amqp-destroy-connection) :int
   (state amqp-connection-state-t))
 
 (cffi:defcfun ("amqp_tcp_socket_new" amqp-tcp-socket-new) amqp-socket-t-ptr
   (state amqp-connection-state-t))
+
 (cffi:defcfun ("amqp_tcp_socket_set_sockfd" amqp-tcp-socket-set-sockfd) :void
   (base amqp-socket-t-ptr)
   (sockfs :int))
