@@ -181,12 +181,21 @@
         (values (nconc (list 'flags flags) res)
                 allocated-values)))))
 
-(defun basic-publish (state channel &key exchange routing-key mandatory immediate properties body)
+(defun basic-publish (state channel &key
+                                      exchange routing-key mandatory immediate properties
+                                      body (encoding :utf-8))
   "Publish a message on an exchange with a routing key.
 Note that at the AMQ protocol level basic.publish is an async method:
 this means error conditions that occur on the broker (such as
 publishing to a non-existent exchange) will not be reflected in the
 return value of this function.
+
+STATE is the connection on which to send the message.
+
+CHANNEL is the channel that should be used.
+
+BODY can be either a vector of bytes, or a string. If it's a string,
+then it will be encoded using ENCODING before sending.
 
 The PROPERTIES argument indicates an alist of message properties. The
 following property keywords are accepted:
@@ -195,7 +204,7 @@ following property keywords are accepted:
   (check-type channel integer)
   (check-type exchange (or null string))
   (check-type routing-key (or null string))
-  (check-type body (or null array))
+  (check-type body (or null vector string))
   (unwind-protect
        (with-bytes-strings ((exchange-bytes exchange)
                             (routing-key-bytes routing-key))
@@ -219,7 +228,9 @@ following property keywords are accepted:
                         (send-with-properties data (cffi:null-pointer)))))
 
            (if body
-               (with-bytes-struct (body-val body)
+               (with-bytes-struct (body-val (etypecase body
+                                              (string (babel:octets-to-string body :encoding encoding))
+                                              (vector body)))
                  (send-with-data body-val))
                ;; ELSE: body is nil, send a blank struct
                (send-with-data (list 'len 0 'bytes (cffi-sys:null-pointer))))))
