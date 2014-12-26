@@ -188,7 +188,10 @@ this means error conditions that occur on the broker (such as
 publishing to a non-existent exchange) will not be reflected in the
 return value of this function.
 
-The PROPERTIES argument indicates an alist of message properties."
+The PROPERTIES argument indicates an alist of message properties. The
+following property keywords are accepted:
+:CONTENT-TYPE :CONTENT-ENCODING :DELIVERY-MODE :PRIORITY :CORRELATION-ID 
+:REPLY-TO :EXPIRATION :MESSAGE-ID :TIMESTAMP :TYPE :USER-ID :APP-ID :CLUSTER-ID"
   (check-type channel integer)
   (check-type exchange (or null string))
   (check-type routing-key (or null string))
