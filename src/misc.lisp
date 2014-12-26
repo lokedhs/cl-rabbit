@@ -85,6 +85,16 @@
   (alexandria:with-gensyms (arg-sym)
     `(call-with-timeval #'(lambda (,arg-sym) (let ((,symbol ,arg-sym)) ,@body)) ,time)))
 
+(declaim (inline bzero-ptr))
+(defun bzero-ptr (ptr size)
+  (declare (optimize (speed 3) (safety 1))
+           (type cffi:foreign-pointer ptr)
+           (type fixnum size))
+  (loop
+     for i from 0 below size
+     do (setf (cffi:mem-aref ptr :char i) 0))
+  (values))
+
 (defparameter *field-kind-types*
   '((:amqp-field-kind-boolean . value-boolean)
     (:amqp-field-kind-i8 . value-i8)

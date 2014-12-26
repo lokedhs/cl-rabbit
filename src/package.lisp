@@ -30,7 +30,8 @@
            #:exchange-unbind
            #:new-connection
            #:destroy-connection
-           #:channel-flow))
+           #:channel-flow
+           #:message/properties))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)

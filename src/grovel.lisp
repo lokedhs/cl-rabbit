@@ -109,8 +109,22 @@
 (constant (amqp-confirm-select-method "AMQP_CONFIRM_SELECT_METHOD"))
 (constant (amqp-confirm-select-ok-method "AMQP_CONFIRM_SELECT_OK_METHOD"))
 
-(ctype size-t "size_t")
+(constant (amqp-basic-content-type-flag "AMQP_BASIC_CONTENT_TYPE_FLAG"))
+(constant (amqp-basic-content-encoding-flag "AMQP_BASIC_CONTENT_ENCODING_FLAG"))
+(constant (amqp-basic-headers-flag "AMQP_BASIC_HEADERS_FLAG"))
+(constant (amqp-basic-delivery-mode-flag "AMQP_BASIC_DELIVERY_MODE_FLAG"))
+(constant (amqp-basic-priority-flag "AMQP_BASIC_PRIORITY_FLAG"))
+(constant (amqp-basic-correlation-id-flag "AMQP_BASIC_CORRELATION_ID_FLAG"))
+(constant (amqp-basic-reply-to-flag "AMQP_BASIC_REPLY_TO_FLAG"))
+(constant (amqp-basic-expiration-flag "AMQP_BASIC_EXPIRATION_FLAG"))
+(constant (amqp-basic-message-id-flag "AMQP_BASIC_MESSAGE_ID_FLAG"))
+(constant (amqp-basic-timestamp-flag "AMQP_BASIC_TIMESTAMP_FLAG"))
+(constant (amqp-basic-type-flag "AMQP_BASIC_TYPE_FLAG"))
+(constant (amqp-basic-user-id-flag "AMQP_BASIC_USER_ID_FLAG"))
+(constant (amqp-basic-app-id-flag "AMQP_BASIC_APP_ID_FLAG"))
+(constant (amqp-basic-cluster-id-flag "AMQP_BASIC_CLUSTER_ID_FLAG"))
 
+(ctype size-t "size_t")
 (ctype amqp-boolean-t "amqp_boolean_t")
 (ctype amqp-method-number-t "amqp_method_number_t")
 (ctype amqp-channel-t "amqp_channel_t")
@@ -193,7 +207,7 @@
          (value "value" :type (:struct amqp-field-value-t)))
 
 (cstruct amqp-basic-properties-t "amqp_basic_properties_t"
-         #+nil(flags "_flags" :type amqp-flags-t)
+         (flags "_flags" :type amqp-flags-t)
          (content-type "content_type" :type (:struct amqp-bytes-t))
          (content-encoding "content_encoding" :type (:struct amqp-bytes-t))
          (headers "headers" :type (:struct amqp-table-t))

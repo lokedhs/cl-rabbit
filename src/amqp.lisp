@@ -20,9 +20,12 @@
              (format out "RPC error: ~s" (slot-value condition 'type)))))
 
 (defclass message ()
-  ((body :type (simple-array (unsigned-byte 8) (*))
-         :initarg :body
-         :reader message/body)))
+  ((body       :type (simple-array (unsigned-byte 8) (*))
+               :initarg :body
+               :reader message/body)
+   (properties :type list
+               :initarg :properties
+               :reader message/properties)))
 
 (defmethod print-object ((obj message) stream)
   (print-unreadable-object (obj stream :type t :identity nil)
@@ -31,7 +34,9 @@
         (format stream "NOT-BOUND"))))
 
 (defun make-envelope-message (value)
-  (make-instance 'message :body (bytes->array (getf value 'body))))
+  (make-instance 'message
+                 :body (bytes->array (getf value 'body))
+                 :properties (load-properties-to-alist (getf value 'properties))))
 
 (defclass envelope ()
   ((channel      :type integer
@@ -128,7 +133,62 @@
        (verify-rpc-framing-call state (amqp-channel-close state channel code))
     (maybe-release-buffers state)))
 
-(defun basic-publish (state channel &key exchange routing-key mandatory immediate body)
+(defparameter *props-mapping*
+  `((:content-type content-type :string string ,amqp-basic-content-type-flag)
+    (:content-encoding content-encoding :string string ,amqp-basic-content-encoding-flag)
+    (:delivery-mode delivery-mode :integer (unsigned-byte 8) ,amqp-basic-delivery-mode-flag)
+    (:priority priority :integer (unsigned-byte 8) ,amqp-basic-priority-flag)
+    (:correlation-id correlation-id :string string ,amqp-basic-correlation-id-flag)
+    (:reply-to reply-to :string string ,amqp-basic-reply-to-flag)
+    (:expiration expiration :string string ,amqp-basic-expiration-flag)
+    (:message-id message-id :string string ,amqp-basic-message-id-flag)
+    (:timestamp timestamp :integer (unsigned-byte 8) ,amqp-basic-timestamp-flag)
+    (:type type :string string ,amqp-basic-type-flag)
+    (:user-id user-id :string string ,amqp-basic-user-id-flag)
+    (:app-id app-id :string string ,amqp-basic-app-id-flag)
+    (:cluster-id cluster-id :string string ,amqp-basic-cluster-id-flag)))
+
+(defun load-properties-to-alist (props)
+  (loop
+     with flags = (getf props 'flags)
+     for def in *props-mapping*
+     when (not (zerop (logand flags (fifth def))))
+     collect (let ((value (getf props (second def))))
+               (cons (first def)
+                     (ecase (third def)
+                       (:string (bytes->string value))
+                       (:integer value))))))
+
+(defun fill-in-properties-alist (properties)
+  (let ((allocated-values nil)
+        (flags 0))
+    (labels ((string-native (string)
+               (let* ((utf (babel:string-to-octets string :encoding :utf-8))
+                      (ptr (array-to-foreign-char-array utf)))
+                 (push ptr allocated-values)
+                 (list 'len (array-dimension utf 0) 'bytes ptr))))
+      (let ((res (loop
+                    for (key . value) in properties
+                    for def = (find key *props-mapping* :key #'first)
+                    unless def
+                    do (error "Unknown property in alist: ~s" key)
+                    unless (typep value (fourth def))
+                    do (error "Illegal type for ~s: ~s. Expected: ~s" (first def) (type-of value) (fourth def))
+                    do (setf flags (logior flags (fifth def)))
+                    append (list (second def) (ecase (third def)
+                                                (:string (string-native value))
+                                                (:integer value))))))
+        (values (nconc (list 'flags flags) res)
+                allocated-values)))))
+
+(defun basic-publish (state channel &key exchange routing-key mandatory immediate properties body)
+  "Publish a message on an exchange with a routing key.
+Note that at the AMQ protocol level basic.publish is an async method:
+this means error conditions that occur on the broker (such as
+publishing to a non-existent exchange) will not be reflected in the
+return value of this function.
+
+The PROPERTIES argument indicates an alist of message properties."
   (check-type channel integer)
   (check-type exchange (or null string))
   (check-type routing-key (or null string))
@@ -136,15 +196,30 @@
   (unwind-protect
        (with-bytes-strings ((exchange-bytes exchange)
                             (routing-key-bytes routing-key))
-         (labels ((send (data)
+         (labels ((send-with-properties (data props)
                     (verify-status (amqp-basic-publish state channel exchange-bytes routing-key-bytes
                                                        (if mandatory 1 0) (if immediate 1 0)
-                                                       (cffi-sys:null-pointer) data))))
+                                                       props data)))
+
+                  (send-with-data (data)
+                    (if properties
+                        (cffi:with-foreign-objects ((p '(:struct amqp-basic-properties-t)))
+                          (multiple-value-bind (props-list allocated)
+                              (fill-in-properties-alist properties)
+                            (unwind-protect
+                                 (progn
+                                   (setf (cffi:mem-ref p '(:struct amqp-basic-properties-t)) props-list)
+                                   (send-with-properties data p))
+                              (dolist (ptr allocated)
+                                (cffi:foreign-free ptr)))))
+                        ;; ELSE: No properties argument
+                        (send-with-properties data (cffi:null-pointer)))))
+
            (if body
                (with-bytes-struct (body-val body)
-                 (send body-val))
+                 (send-with-data body-val))
                ;; ELSE: body is nil, send a blank struct
-               (send (list 'len 0 'bytes (cffi-sys:null-pointer))))))
+               (send-with-data (list 'len 0 'bytes (cffi-sys:null-pointer))))))
     (maybe-release-buffers state)))
 
 (defun exchange-declare (state channel exchange type &key passive durable arguments)

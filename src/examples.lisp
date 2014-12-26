@@ -9,11 +9,8 @@
       (basic-publish conn 1
                      :exchange "test-ex"
                      :routing-key "xx"
-                     :body (babel:string-to-octets "this is the message content" :encoding :utf-8)))))
-
-(defun recv-loop (conn)
-  (maybe-release-buffers conn)
-  (consume-message conn))
+                     :body (babel:string-to-octets "this is the message content" :encoding :utf-8)
+                     :properties '((:app-id . "Application id"))))))
 
 (defun test-recv ()
   (with-connection (conn)
@@ -25,9 +22,12 @@
       (let ((queue-name (queue-declare conn 1 :auto-delete t)))
         (queue-bind conn 1 :queue queue-name :exchange "test-ex" :routing-key "xx")
         (basic-consume conn 1 queue-name)
-        (let ((result (recv-loop conn)))
-          (format t "Got message: ~s, content: ~s" result (babel:octets-to-string (message/body (envelope/message result))
-                                                                                  :encoding :utf-8)))))))
+        (let* ((result (consume-message conn))
+               (message (envelope/message result)))
+          (format t "Got message: ~s~%content: ~s~%props: ~s"
+                  result (babel:octets-to-string (message/body message)
+                                                 :encoding :utf-8)
+                  (message/properties message)))))))
 
 (defun test-recv-in-thread ()
   (let ((out *standard-output*))
