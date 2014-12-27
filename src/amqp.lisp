@@ -75,17 +75,7 @@
       (error 'rabbitmq-error :type type))
     type))
 
-(defun verify-rpc-reply (reply)
-  (let* ((status (getf reply 'reply-type))
-         (type (cffi:foreign-enum-keyword 'amqp-response-type-enum status)))
-    (unless (eq type :amqp-response-normal)
-      (error 'rabbitmq-server-error :type type))))
-
-(defun verify-rpc-framing-call (state result)
-  (when (cffi:null-pointer-p result)
-    (verify-rpc-reply (amqp-get-rpc-reply state))))
-
-(defun process-amqp-reply (state result)
+(defun verify-rpc-reply (state result)
   (let ((status (getf result 'reply-type)))
     (unless (= status (cffi:foreign-enum-value 'amqp-response-type-enum :amqp-response-normal))
       (if (and (= status (cffi:foreign-enum-value 'amqp-response-type-enum :amqp-response-library-exception))
@@ -101,6 +91,10 @@
                   (error "Unexpected state"))))
           ;; Other error type
           (error 'rabbitmq-error :type status)))))
+
+(defun verify-rpc-framing-call (state result)
+  (when (cffi:null-pointer-p result)
+    (verify-rpc-reply state (amqp-get-rpc-reply state))))
 
 ;;;
 ;;;  API calls
@@ -130,8 +124,7 @@ Parameters:
 STATE - the connection object
 CODE - the reason code for closing the connection. Defaults to AMQP_REPLY_SUCCESS."
   (check-type code (or null integer))
-  (let ((reply (amqp-connection-close state (or code amqp-reply-success))))
-    (process-amqp-reply state reply)))
+  (verify-rpc-framing-call state (amqp-connection-close state (or code amqp-reply-success))))
 
 (defun socket-open (socket host port)
   "Open a socket connection.
@@ -383,7 +376,7 @@ following property keywords are accepted:
          (with-amqp-table (table arguments)
            (let ((result (amqp-queue-declare state channel queue-bytes (if passive 1 0) (if durable 1 0)
                                              (if exclusive 1 0) (if auto-delete 1 0) table)))
-             (verify-rpc-reply (amqp-get-rpc-reply state))
+             (verify-rpc-reply state (amqp-get-rpc-reply state))
              (values (bytes->string (cffi:foreign-slot-value result
                                                              '(:struct amqp-queue-declare-ok-t)
                                                              'queue))
@@ -432,7 +425,7 @@ following property keywords are accepted:
          (with-amqp-table (table arguments)
            (let ((result (amqp-basic-consume state channel queue-bytes consumer-tag-bytes
                                              (if no-local 1 0) (if no-ack 1 0) (if exclusive 1 0) table)))
-             (verify-rpc-reply (amqp-get-rpc-reply state))
+             (verify-rpc-reply state (amqp-get-rpc-reply state))
              (bytes->string (cffi:foreign-slot-value result '(:struct amqp-basic-consume-ok-t) 'consumer-tag)))))
     (maybe-release-buffers state)))
 
@@ -442,7 +435,7 @@ following property keywords are accepted:
        (with-foreign-timeval (native-timeout timeout)
          (cffi:with-foreign-objects ((envelope '(:struct amqp-envelope-t)))
            (let* ((result (amqp-consume-message state envelope native-timeout 0)))
-             (process-amqp-reply state result)
+             (verify-rpc-reply state result)
              (unwind-protect
                   (flet ((getval (slot-name)
                            (cffi:foreign-slot-value envelope '(:struct amqp-envelope-t) slot-name)))
