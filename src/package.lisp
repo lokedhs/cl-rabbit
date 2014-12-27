@@ -12,7 +12,6 @@
            #:basic-consume
            #:basic-publish
            #:with-connection
-           #:maybe-release-buffers
            #:message/body
            #:envelope/channel
            #:envelope/consumer-tag

@@ -6,6 +6,7 @@
       (socket-open socket "localhost" 5672)
       (login-sasl-plain conn "/" "guest" "guest")
       (channel-open conn 1)
+      (print conn)
       (basic-publish conn 1
                      :exchange "test-ex"
                      :routing-key "xx"
