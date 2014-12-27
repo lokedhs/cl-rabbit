@@ -17,7 +17,8 @@
          :reader rabbitmq-server-error/type
          :documentation "Exception type as returned by the server"))
   (:report (lambda (condition out)
-             (format out "RPC error: ~s" (slot-value condition 'type)))))
+             (format out "RPC error: ~s" (slot-value condition 'type))))
+  (:documentation "Error that is raised when the server reports an error condition"))
 
 (defclass message ()
   ((body       :type (simple-array (unsigned-byte 8) (*))
@@ -84,6 +85,27 @@
   (when (cffi:null-pointer-p result)
     (verify-rpc-reply (amqp-get-rpc-reply state))))
 
+(defun process-amqp-reply (state result)
+  (let ((status (getf result 'reply-type)))
+    (unless (= status (cffi:foreign-enum-value 'amqp-response-type-enum :amqp-response-normal))
+      (if (and (= status (cffi:foreign-enum-value 'amqp-response-type-enum :amqp-response-library-exception))
+               (= (getf result 'library-error)
+                  (cffi:foreign-enum-value 'amqp-status-enum :amqp-status-unexpected-state)))
+          ;; The connection is in an unexpected state, we need to get
+          ;; an error from from the remote
+          (cffi:with-foreign-objects ((foreign-frame '(:struct amqp-frame-t)))
+            (verify-status (amqp-simple-wait-frame state foreign-frame))
+            (let ((frame-type (cffi:foreign-slot-value foreign-frame '(:struct amqp-frame-t) 'frame-type)))
+              (if (= frame-type amqp-frame-method)
+                  (error "Frame errors not currently handled")
+                  (error "Unexpected state"))))
+          ;; Other error type
+          (error 'rabbitmq-error :type status)))))
+
+;;;
+;;;  API calls
+;;;
+
 (defun maybe-release-buffers (conn)
   (amqp-maybe-release-buffers conn))
 
@@ -94,14 +116,59 @@
   (verify-status (amqp-destroy-connection state)))
 
 (defun tcp-socket-new (connection)
+  "Create a new TCP socket.
+Call CONNECTION-CLOSE to release socket resources."
   (fail-if-null (amqp-tcp-socket-new connection)))
 
+(defun connection-close (state &key code)
+  " Closes the entire connection
+Implicitly closes all channels and informs the broker the connection
+is being closed, after receiving acknowldgement from the broker it closes
+the socket.
+
+Parameters:
+STATE - the connection object
+CODE - the reason code for closing the connection. Defaults to AMQP_REPLY_SUCCESS."
+  (check-type code (or null integer))
+  (let ((reply (amqp-connection-close state (or code amqp-reply-success))))
+    (process-amqp-reply state reply)))
+
 (defun socket-open (socket host port)
+  "Open a socket connection.
+This function opens a socket connection returned from TCP-SOCKET-NEW
+or SSL-SOCKET-NEW."
   (check-type host string)
   (check-type port alexandria:positive-integer)
   (verify-status (amqp-socket-open socket host port)))
 
 (defun login-sasl-plain (state vhost user password &key (channel-max 0) (frame-max 131072) (heartbeat 0) properties)
+  "Login to the broker using the SASL PLAIN method.
+
+Parameters:
+
+STATE - The connection object
+
+VHOST - the virtual host to connect to on the broker. The default on
+most brokers is \"/\"
+
+CHANNEL-MAX - the limit for the number of channels for the connection.
+0 means no limit, and is a good default (AMQP_DEFAULT_MAX_CHANNELS)
+Note that the maximum number of channels the protocol supports is
+65535 (2^16, with the 0-channel reserved)
+
+FRAME-MAX - the maximum size of an AMQP frame on the wire to request
+of the broker for this connection. 4096 is the minimum size, 2^31-1 is
+the maximum, a good default is 131072 (128 kB), or
+AMQP_DEFAULT_FRAME_SIZE
+
+HEARTBEAT - the number of seconds between heartbeat frame to request
+of the broker. A value of 0 disables heartbeats. Note rabbitmq-c only
+has partial support for hearts, as of v0.4.0 heartbeats are only
+serviced during BASIC-PUBLISH, SIMPLE-WAIT-FRAME and
+SIMPLE-WAIT-FRAME-NOBLOCK (the last two are currently not implemented
+in the Common Lisp API)
+
+PROPERTIES - a table of properties to send the broker"
   (check-type vhost string)
   (check-type user string)
   (check-type password string)
@@ -126,11 +193,22 @@
        (verify-rpc-framing-call state (amqp-channel-flow state channel (if active 1 0)))
     (maybe-release-buffers state)))
 
-(defun channel-close (state channel code)
+(defun channel-close (state channel &key code)
+  (check-type channel integer)
+  (check-type code integer)
+  "Closes a channel.
+
+Parameters:
+
+STATE - the connection object
+
+CHANNEL - the channel that shoud be closed
+
+CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
   (check-type channel integer)
   (check-type code integer)
   (unwind-protect
-       (verify-rpc-framing-call state (amqp-channel-close state channel code))
+       (verify-rpc-framing-call state (amqp-channel-close state channel (or code amqp-reply-success)))
     (maybe-release-buffers state)))
 
 (defparameter *props-mapping*
@@ -190,14 +268,28 @@ this means error conditions that occur on the broker (such as
 publishing to a non-existent exchange) will not be reflected in the
 return value of this function.
 
-STATE is the connection on which to send the message.
+Parameters:
 
-CHANNEL is the channel that should be used.
+STATE - the connection on which to send the message.
 
-BODY can be either a vector of bytes, or a string. If it's a string,
+CHANNEL - the channel that should be used.
+
+EXCHANGE - the exchange on the broker to publish to
+
+ROUTING-KEY - the routing key to use when publishing the message
+
+MANDATORY - indicate to the broker that the message MUST be routed to
+a queue. If the broker cannot do this it should respond with a
+basic.reject method
+
+IMMEDIATE - indicate to the broker that the message MUST be delivered
+to a consumer immediately. If the broker cannot do this it should
+response with a basic.reject method.
+
+BODY - can be either a vector of bytes, or a string. If it's a string,
 then it will be encoded using ENCODING before sending.
 
-The PROPERTIES argument indicates an alist of message properties. The
+PROPERTIES - indicates an alist of message properties. The
 following property keywords are accepted:
 :CONTENT-TYPE :CONTENT-ENCODING :DELIVERY-MODE :PRIORITY :CORRELATION-ID 
 :REPLY-TO :EXPIRATION :MESSAGE-ID :TIMESTAMP :TYPE :USER-ID :APP-ID :CLUSTER-ID"
@@ -344,38 +436,24 @@ following property keywords are accepted:
              (bytes->string (cffi:foreign-slot-value result '(:struct amqp-basic-consume-ok-t) 'consumer-tag)))))
     (maybe-release-buffers state)))
 
-(defun process-consume-library-error (state)
-  (cffi:with-foreign-objects ((foreign-frame '(:struct amqp-frame-t)))
-    (verify-status (amqp-simple-wait-frame state foreign-frame))
-    (when (= (cffi:foreign-slot-value foreign-frame '(:struct amqp-frame-t) 'frame-type)
-             amqp-frame-method)
-      (error "Frame errors not currently handled"))))
-
 (defun consume-message (state &key timeout)
   (check-type timeout (or null integer))
   (unwind-protect
        (with-foreign-timeval (native-timeout timeout)
          (cffi:with-foreign-objects ((envelope '(:struct amqp-envelope-t)))
-           (let* ((result (amqp-consume-message state envelope native-timeout 0))
-                  (status (getf result 'reply-type)))
-             (cond ((= status (cffi:foreign-enum-value 'amqp-response-type-enum :amqp-response-normal))
-                    (unwind-protect
-                         (flet ((getval (slot-name)
-                                  (cffi:foreign-slot-value envelope '(:struct amqp-envelope-t) slot-name)))
-                           (make-instance 'envelope
-                                          :channel (getval 'channel)
-                                          :consumer-tag (bytes->string (getval 'consumer-tag))
-                                          :delivery-tag (getval 'delivery-tag)
-                                          :exchange (bytes->string (getval 'exchange))
-                                          :routing-key (bytes->string (getval 'routing-key))
-                                          :message (make-envelope-message (getval 'message))))
-                      (amqp-destroy-envelope envelope)))
-
-                   ;; Treat library errors
-                   ((and (= status (cffi:foreign-enum-value 'amqp-response-type-enum :amqp-response-library-exception))
-                         (= (getf result 'library-error)
-                            (cffi:foreign-enum-value 'amqp-status-enum :amqp-status-unexpected-state)))
-                    (process-consume-library-error state))))))
+           (let* ((result (amqp-consume-message state envelope native-timeout 0)))
+             (process-amqp-reply state result)
+             (unwind-protect
+                  (flet ((getval (slot-name)
+                           (cffi:foreign-slot-value envelope '(:struct amqp-envelope-t) slot-name)))
+                    (make-instance 'envelope
+                                   :channel (getval 'channel)
+                                   :consumer-tag (bytes->string (getval 'consumer-tag))
+                                   :delivery-tag (getval 'delivery-tag)
+                                   :exchange (bytes->string (getval 'exchange))
+                                   :routing-key (bytes->string (getval 'routing-key))
+                                   :message (make-envelope-message (getval 'message))))
+               (amqp-destroy-envelope envelope)))))
     (maybe-release-buffers state)))
 
 (defmacro with-connection ((conn) &body body)

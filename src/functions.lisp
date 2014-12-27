@@ -26,6 +26,10 @@
 
 (cffi:defcfun ("amqp_new_connection" amqp-new-connection) amqp-connection-state-t)
 
+(cffi:defcfun ("amqp_connection_close" amqp-connection-close) (:struct amqp-rpc-reply-t)
+  (state amqp-connection-state-t)
+  (code :int))
+
 (cffi:defcfun ("amqp_destroy_connection" amqp-destroy-connection) :int
   (state amqp-connection-state-t))
 
