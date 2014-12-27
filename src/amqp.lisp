@@ -430,23 +430,44 @@ following property keywords are accepted:
     (maybe-release-buffers state)))
 
 (defun consume-message (state &key timeout)
+  "Wait for and consume a message.
+Waits for a basic.deliver method on any channel, upon receipt of
+basic.deliver it reads that message, and returns. If any other method
+is received before basic.deliver, this function will return an
+amqp_rpc_reply_t with ret.reply_type ==
+AMQP_RESPONSE_LIBRARY_EXCEPTION, and ret.library_error ==
+AMQP_STATUS_UNEXPECTED_FRAME. The caller should then call
+amqp_simple_wait_frame() to read this frame and take appropriate
+action.
+
+This function should be used after starting a consumer with the
+BASIC-CONSUME function.
+
+This function returns an instance of ENVELOPE that contains the
+consumed message.
+
+Parameters:
+
+STATE - the connection object
+
+TIMEOUT - a timeout to wait for a message delivery. Passing in
+NIL will result in blocking behavior."
   (check-type timeout (or null integer))
   (unwind-protect
        (with-foreign-timeval (native-timeout timeout)
          (cffi:with-foreign-objects ((envelope '(:struct amqp-envelope-t)))
-           (let* ((result (amqp-consume-message state envelope native-timeout 0)))
-             (verify-rpc-reply state result)
-             (unwind-protect
-                  (flet ((getval (slot-name)
-                           (cffi:foreign-slot-value envelope '(:struct amqp-envelope-t) slot-name)))
-                    (make-instance 'envelope
-                                   :channel (getval 'channel)
-                                   :consumer-tag (bytes->string (getval 'consumer-tag))
-                                   :delivery-tag (getval 'delivery-tag)
-                                   :exchange (bytes->string (getval 'exchange))
-                                   :routing-key (bytes->string (getval 'routing-key))
-                                   :message (make-envelope-message (getval 'message))))
-               (amqp-destroy-envelope envelope)))))
+           (verify-rpc-reply state (amqp-consume-message state envelope native-timeout 0))
+           (unwind-protect
+                (flet ((getval (slot-name)
+                         (cffi:foreign-slot-value envelope '(:struct amqp-envelope-t) slot-name)))
+                  (make-instance 'envelope
+                                 :channel (getval 'channel)
+                                 :consumer-tag (bytes->string (getval 'consumer-tag))
+                                 :delivery-tag (getval 'delivery-tag)
+                                 :exchange (bytes->string (getval 'exchange))
+                                 :routing-key (bytes->string (getval 'routing-key))
+                                 :message (make-envelope-message (getval 'message))))
+             (amqp-destroy-envelope envelope))))
     (maybe-release-buffers state)))
 
 (defmacro with-connection ((conn) &body body)
