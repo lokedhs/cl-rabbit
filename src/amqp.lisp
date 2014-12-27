@@ -23,17 +23,12 @@
 (defclass connection ()
   ((conn    :type cffi:foreign-pointer
             :initarg :conn
-            :reader connection/native-connection)
-   (error-p :type t
-            :initform nil
-            :reader connection/error-p))
+            :reader connection/native-connection))
   (:documentation "Class representing a connection to a RabbitMQ server."))
 
 (defmacro with-state ((state conn) &body body)
   `(progn
      (check-type ,conn connection)
-     (when (connection/error-p ,conn)
-       (error "The connection is in an error state."))
      (let ((,state (connection/native-connection ,conn)))
        ,@body)))
 
