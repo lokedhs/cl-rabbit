@@ -14,6 +14,9 @@
 (cffi:defcfun ("amqp_cstring_bytes" amqp-cstring-bytes) (:struct amqp-bytes-t)
   (cstr :string))
 
+(cffi:defcfun ("amqp_error_string" amqp-error-string) (:pointer :char)
+  (err :int))
+
 (cffi:defcfun ("amqp_get_rpc_reply" amqp-get-rpc-reply) (:struct amqp-rpc-reply-t)
   (state amqp-connection-state-t))
 
@@ -79,6 +82,19 @@
   (state amqp-connection-state-t)
   (channel amqp-channel-t)
   (code :int))
+
+(cffi:defcfun ("amqp_basic_ack" amqp-basic-ack) :int
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (delivery-tag uint64-t)
+  (multiple amqp-boolean-t))
+
+(cffi:defcfun ("amqp_basic_nack" amqp-basic-nack) :int
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (delivery-tag uint64-t)
+  (multiple amqp-boolean-t)
+  (requeue amqp-boolean-t))
 
 (cffi:defcfun ("amqp_basic_publish" amqp-basic-publish) :int
   (state amqp-connection-state-t)

@@ -3,15 +3,28 @@
 (declaim (optimize (speed 0) (safety 3) (debug 3)))
 
 (define-condition rabbitmq-error (error)
-  ((type :type keyword
-         :initarg :type
-         :reader rabbitmq-error/type
-         :documentation "The response type as returned by the AMQP call"))
+  ()
+  (:documentation "General superclass for rabbitmq errors"))
+
+(define-condition rabbitmq-library-error (rabbitmq-error)
+  ((error-code    :type keyword
+                  :initarg :error-code
+                  :reader rabbitmq-library-error/error-code
+                  :documentation "The response type as returned by the AMQP call")
+   (error-description :type string
+                      :initarg :error-description
+                      :reader rabbitmq-library-error/error-description))
   (:report (lambda (condition out)
-             (format out "AMQP error: ~s" (rabbitmq-error/type condition))))
+             (format out "AMQP library error: ~a" (rabbitmq-library-error/error-description condition))))
   (:documentation "Error that is raised when an AMQP call fails"))
 
-(define-condition rabbitmq-server-error (error)
+(defun raise-rabbitmq-library-error (code)
+  (let ((string-ptr (amqp-error-string code)))
+    (let ((description (cffi:foreign-string-to-lisp string-ptr)))
+      (cffi:foreign-string-free string-ptr)
+      (error 'rabbitmq-library-error :error-code code :error-description description))))
+
+(define-condition rabbitmq-server-error (rabbitmq-error)
   ((type :type keyword
          :initarg :type
          :reader rabbitmq-server-error/type
@@ -78,31 +91,23 @@
 
 (defun fail-if-null (ptr)
   (when (cffi-sys:null-pointer-p ptr)
-    (error "Failed"))
+    (error 'rabbitmq-error))
   ptr)
 
 (defun verify-status (status)
   (let ((type (cffi:foreign-enum-keyword 'amqp-status-enum status)))
     (unless (eq type :amqp-status-ok)
-      (error 'rabbitmq-error :type type))
+      (error 'rabbitmq-library-error :return-code type))
     type))
 
 (defun verify-rpc-reply (state result)
-  (let ((status (getf result 'reply-type)))
-    (unless (= status (cffi:foreign-enum-value 'amqp-response-type-enum :amqp-response-normal))
-      (if (and (= status (cffi:foreign-enum-value 'amqp-response-type-enum :amqp-response-library-exception))
-               (= (getf result 'library-error)
-                  (cffi:foreign-enum-value 'amqp-status-enum :amqp-status-unexpected-state)))
-          ;; The connection is in an unexpected state, we need to get
-          ;; an error from from the remote
-          (cffi:with-foreign-objects ((foreign-frame '(:struct amqp-frame-t)))
-            (verify-status (amqp-simple-wait-frame state foreign-frame))
-            (let ((frame-type (cffi:foreign-slot-value foreign-frame '(:struct amqp-frame-t) 'frame-type)))
-              (if (= frame-type amqp-frame-method)
-                  (error "Frame errors not currently handled")
-                  (error "Unexpected state"))))
-          ;; Other error type
-          (error 'rabbitmq-error :type status)))))
+  (declare (ignore state))
+  (let ((reply-type (cffi:foreign-enum-keyword 'amqp-response-type-enum (getf result 'reply-type))))
+    (case reply-type
+      (:amqp-response-normal reply-type)
+      (:amqp-response-server-exception (error 'rabbitmq-server-error :type reply-type))
+      (:amqp-response-library-exception (raise-rabbitmq-library-error (getf result 'library-error)))
+      (t (error "Unexpected error: ~s" reply-type)))))
 
 (defun verify-rpc-framing-call (state result)
   (when (cffi:null-pointer-p result)
@@ -208,13 +213,9 @@ PROPERTIES - a table of properties to send the broker"
 
 (defun channel-close (conn channel &key code)
   "Closes a channel.
-
 Parameters:
-
 CONN - the connection object
-
 CHANNEL - the channel that shoud be closed
-
 CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
   (check-type channel integer)
   (check-type code (or null integer))
@@ -270,6 +271,39 @@ CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
                                                 (:integer value))))))
         (values (nconc (list 'flags flags) res)
                 allocated-values)))))
+
+(defun basic-ack (conn channel delivery-tag &key multiple)
+  "Acknowledges a message.
+Does a basic.ack on a received message.
+
+Parameters:
+CONN - the connection object
+CHANNEL - the channel identifier
+MULTIPLE - if true, ack all messages up to this delivery tag, if
+false ack only this delivery tag"
+  (check-type channel integer)
+  (with-state (state conn)
+    (let ((result (amqp-basic-ack state channel delivery-tag (if multiple 1 0))))
+      (unless (zerop result)
+        (error 'rabbitmq-error)))))
+
+(defun basic-nack (conn channel delivery-tag &key multiple requeue)
+  "Do a basic.nack.
+Actively reject a message, this has the same effect as amqp_basic_reject()
+however, amqp_basic_nack() can negatively acknowledge multiple messages with
+one call much like amqp_basic_ack() can acknowledge mutliple messages with
+one call.
+
+Parameters:
+CONN - the connection object
+CHANNEL - the channel identifier
+DELIVERY-TAG - the delivery tag of the message to reject
+MULTIPLE - if true negatively acknowledge all unacknowledged messages on this channel
+REQUEUE - indicate to the broker whether it should requeue the message"
+  (check-type channel integer)
+  (check-type delivery-tag integer)
+  (with-state (state conn)
+    (verify-status (amqp-basic-nack state channel delivery-tag (if multiple 1 0) (if requeue 1 0)))))
 
 (defun basic-publish (conn channel &key
                                      exchange routing-key mandatory immediate properties
