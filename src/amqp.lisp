@@ -283,9 +283,11 @@ MULTIPLE - if true, ack all messages up to this delivery tag, if
 false ack only this delivery tag"
   (check-type channel integer)
   (with-state (state conn)
-    (let ((result (amqp-basic-ack state channel delivery-tag (if multiple 1 0))))
-      (unless (zerop result)
-        (error 'rabbitmq-error)))))
+    (unwind-protect
+         (let ((result (amqp-basic-ack state channel delivery-tag (if multiple 1 0))))
+           (unless (zerop result)
+             (error 'rabbitmq-error)))
+      (maybe-release-buffers state))))
 
 (defun basic-nack (conn channel delivery-tag &key multiple requeue)
   "Do a basic.nack.
@@ -303,7 +305,9 @@ REQUEUE - indicate to the broker whether it should requeue the message"
   (check-type channel integer)
   (check-type delivery-tag integer)
   (with-state (state conn)
-    (verify-status (amqp-basic-nack state channel delivery-tag (if multiple 1 0) (if requeue 1 0)))))
+    (unwind-protect
+         (verify-status (amqp-basic-nack state channel delivery-tag (if multiple 1 0) (if requeue 1 0)))
+      (maybe-release-buffers state))))
 
 (defun basic-publish (conn channel &key
                                      exchange routing-key mandatory immediate properties
