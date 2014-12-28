@@ -1,7 +1,5 @@
 (in-package :cl-rabbit)
 
-(declaim (optimize (speed 0) (safety 3) (debug 3)))
-
 (defun convert-to-bytes (array)
   (labels ((mk-byte8 (a)
              (let ((result (make-array (length a) :element-type '(unsigned-byte 8))))

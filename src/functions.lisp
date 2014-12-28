@@ -1,7 +1,5 @@
 (in-package :cl-rabbit)
 
-(declaim (optimize (speed 0) (safety 3) (debug 3)))
-
 (cffi:define-foreign-library librabbitmq
   (:darwin "librabbitmq.dylib")
   (:unix "librabbitmq.so"))
