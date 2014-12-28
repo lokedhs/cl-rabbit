@@ -87,6 +87,18 @@
   (delivery-tag uint64-t)
   (multiple amqp-boolean-t))
 
+(cffi:defcfun ("amqp_basic_get" amqp-basic-get) (:struct amqp-rpc-reply-t)
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (queue (:struct amqp-bytes-t))
+  (no-ack amqp-boolean-t))
+
+(cffi:defcfun ("amqp_basic_reject" amqp-basic-reject) :int
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (delivery-tag uint64-t)
+  (requeue amqp-boolean-t))
+
 (cffi:defcfun ("amqp_basic_nack" amqp-basic-nack) :int
   (state amqp-connection-state-t)
   (channel amqp-channel-t)
@@ -183,3 +195,4 @@
 (cffi:defcfun ("amqp_simple_wait_frame" amqp-simple-wait-frame) :int
   (state amqp-connection-state-t)
   (decoded-framce (:pointer (:struct amqp-frame-t))))
+

@@ -537,6 +537,28 @@ NIL will result in blocking behavior."
                (amqp-destroy-envelope envelope))))
       (maybe-release-buffers state))))
 
+;; Currently disabled, since it leaves the input buffer in an unpredictable state
+#+nil
+(defun basic-get (conn channel queue &key no-ack)
+  "Do a basic.get
+Synchonously polls the broker for a message in a queue, and
+retrieves the message if a message is in the queue.
+
+Parameters:
+CONN - the connection object
+CHANNEL - the channel identifier to use
+QUEUE - the queue name to receive from
+NO-ACK if true the message is automatically ack'ed
+if false amqp_basic_ack should be called once the message
+retrieved has been processed"
+  (check-type channel int)
+  (check-type queue string)
+  (with-state (state conn)
+    (unwind-protect
+         (with-bytes-string (queue-bytes queue)
+           (verify-rpc-reply state (amqp-basic-get state channel queue-bytes (if no-ack 1 0))))
+      (maybe-release-buffers state))))
+
 (defmacro with-connection ((conn) &body body)
   (let ((conn-sym (gensym "CONN-")))
     `(let ((,conn-sym (new-connection)))
