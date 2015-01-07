@@ -12,7 +12,7 @@
 (cffi:defcfun ("amqp_cstring_bytes" amqp-cstring-bytes) (:struct amqp-bytes-t)
   (cstr :string))
 
-(cffi:defcfun ("amqp_error_string" amqp-error-string) (:pointer :char)
+(cffi:defcfun ("amqp_error_string2" amqp-error-string2) (:pointer :char)
   (err :int))
 
 (cffi:defcfun ("amqp_get_rpc_reply" amqp-get-rpc-reply) (:struct amqp-rpc-reply-t)
