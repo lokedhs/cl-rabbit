@@ -5,10 +5,10 @@
   (:documentation "General superclass for rabbitmq errors"))
 
 (define-condition rabbitmq-library-error (rabbitmq-error)
-  ((error-code    :type keyword
-                  :initarg :error-code
-                  :reader rabbitmq-library-error/error-code
-                  :documentation "The response type as returned by the AMQP call")
+  ((error-code        :type keyword
+                      :initarg :error-code
+                      :reader rabbitmq-library-error/error-code
+                      :documentation "The response type as returned by the AMQP call")
    (error-description :type string
                       :initarg :error-description
                       :reader rabbitmq-library-error/error-description))
