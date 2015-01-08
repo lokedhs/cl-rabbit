@@ -181,7 +181,7 @@ serviced during BASIC-PUBLISH, SIMPLE-WAIT-FRAME and
 SIMPLE-WAIT-FRAME-NOBLOCK (the last two are currently not implemented
 in the Common Lisp API)
 
-PROPERTIES - a table of properties to send the broker"
+PROPERTIES - a table of properties to send to the broker"
   (check-type vhost string)
   (check-type user string)
   (check-type password string)
