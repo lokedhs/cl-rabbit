@@ -26,8 +26,7 @@
         (let* ((result (consume-message conn))
                (message (envelope/message result)))
           (format t "Got message: ~s~%content: ~s~%props: ~s"
-                  result (babel:octets-to-string (message/body message)
-                                                 :encoding :utf-8)
+                  result (babel:octets-to-string (message/body message) :encoding :utf-8)
                   (message/properties message)))))))
 
 (defun test-recv-in-thread ()
