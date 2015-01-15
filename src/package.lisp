@@ -30,7 +30,10 @@
            #:new-connection
            #:destroy-connection
            #:channel-flow
-           #:message/properties))
+           #:message/properties
+           #:channel-close
+           #:basic-ack
+           #:basic-nack))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)
