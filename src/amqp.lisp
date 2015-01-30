@@ -137,7 +137,7 @@ Implicitly closes all channels and informs the broker the connection
 is being closed, after receiving acknowldgement from the broker it closes
 the socket.
 
-parameters:
+Parameters:
 CONN - the connection object
 CODE - the reason code for closing the connection. Defaults to AMQP_REPLY_SUCCESS."
   (check-type code (or null integer))
