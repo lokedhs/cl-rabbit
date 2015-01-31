@@ -5,7 +5,7 @@ This library is a CFFI-based interface to the RabbitMQ client
 libraries with an interface that is designed to be fairly close to the
 native C API.
 
-The easiest vway to install this library is to download it using
+The easiest way to install this library is to download it using
 Quicklisp:
 
 ```
