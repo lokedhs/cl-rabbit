@@ -430,6 +430,11 @@ following property keywords are accepted:
       (maybe-release-buffers state))))
 
 (defun queue-declare (conn channel &key queue passive durable exclusive auto-delete arguments)
+  "Declare queue, create if needed.
+
+This method creates or checks a queue. When creating a new queue the
+client can specify various properties that control the durability of
+the queue and its contents, and the level of sharing for the queue."
   (check-type channel integer)
   (check-type queue (or null string))
   (with-state (state conn)
@@ -447,6 +452,12 @@ following property keywords are accepted:
       (maybe-release-buffers state))))
 
 (defun queue-bind (conn channel &key queue exchange routing-key arguments)
+  "Bind queue to an exchange.
+
+This method binds a queue to an exchange. Until a queue is bound it
+will not receive any messages. In a classic messaging model,
+store-and-forward queues are bound to a direct exchange and
+subscription queues are bound to a topic exchange."
   (check-type channel integer)
   (check-type queue (or null string))
   (check-type exchange (or null string))
