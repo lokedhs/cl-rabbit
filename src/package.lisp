@@ -1,39 +1,39 @@
 (defpackage :cl-rabbit
   (:use :cl)
   (:documentation "CFFI-based interface to RabbitMQ")
-  (:export #:tcp-socket-new
-           #:socket-open
-           #:login-sasl-plain
+  (:export #:basic-ack
+           #:basic-consume
+           #:basic-nack
+           #:basic-publish
+           #:channel-close
+           #:channel-flow
            #:channel-open
            #:consume-message
-           #:queue-declare
-           #:queue-bind
-           #:queue-unbind
-           #:basic-consume
-           #:basic-publish
-           #:with-connection
-           #:message/body
+           #:destroy-connection
+           #:envelope
            #:envelope/channel
            #:envelope/consumer-tag
            #:envelope/delivery-tag
            #:envelope/exchange
-           #:envelope/routing-key
            #:envelope/message
-           #:envelope
-           #:message
-           #:rabbitmq-server-error
-           #:rabbitmq-error
+           #:envelope/routing-key
+           #:exchange-bind
            #:exchange-declare
            #:exchange-delete
-           #:exchange-bind
            #:exchange-unbind
-           #:new-connection
-           #:destroy-connection
-           #:channel-flow
+           #:login-sasl-plain
+           #:message
+           #:message/body
            #:message/properties
-           #:channel-close
-           #:basic-ack
-           #:basic-nack))
+           #:new-connection
+           #:queue-bind
+           #:queue-declare
+           #:queue-unbind
+           #:rabbitmq-error
+           #:rabbitmq-server-error
+           #:socket-open
+           #:tcp-socket-new
+           #:with-connection))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)
