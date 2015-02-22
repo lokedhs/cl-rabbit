@@ -9,7 +9,7 @@ The easiest way to install this library is to download it using
 Quicklisp:
 
 ```
-(ql:quickload :cl-rabbit")
+(ql:quickload :cl-rabbit)
 ```
 
 Please look at the file `examples.lisp` for a simple example of using
