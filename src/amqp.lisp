@@ -254,14 +254,18 @@ CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
                (let* ((utf (babel:string-to-octets string :encoding :utf-8))
                       (ptr (array-to-foreign-char-array utf)))
                  (push ptr allocated-values)
-                 (list 'len (array-dimension utf 0) 'bytes ptr))))
+                 (list 'len (array-dimension utf 0) 'bytes ptr)))
+             (free-and-raise-error (fmt &rest params)
+               (dolist (ptr allocated-values)
+                 (cffi:foreign-free ptr))
+               (apply #'error fmt params)))
       (let ((res (loop
                     for (key . value) in properties
                     for def = (find key *props-mapping* :key #'first)
                     unless def
-                    do (error "Unknown property in alist: ~s" key)
+                    do (free-and-raise-error "Unknown property in alist: ~s" key)
                     unless (typep value (fourth def))
-                    do (error "Illegal type for ~s: ~s. Expected: ~s" (first def) (type-of value) (fourth def))
+                    do (free-and-raise-error "Illegal type for ~s: ~s. Expected: ~s" (first def) (type-of value) (fourth def))
                     do (setf flags (logior flags (fifth def)))
                     append (list (second def) (ecase (third def)
                                                 (:string (string-native value))
