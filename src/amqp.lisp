@@ -191,8 +191,7 @@ PROPERTIES - a table of properties to send to the broker"
         (setf (cffi:mem-ref native-table '(:struct amqp-table-t)) table)
         (let ((reply (amqp-login-sasl-plain-with-properties state vhost channel-max frame-max heartbeat native-table
                                                             :amqp-sasl-method-plain user password)))
-          (unless (= (getf reply 'reply-type) (cffi:foreign-enum-value 'amqp-response-type-enum :amqp-response-normal))
-            (error "Illegal response from login")))))))
+          (verify-rpc-reply state reply))))))
 
 (defun channel-open (conn channel)
   (check-type channel integer)
