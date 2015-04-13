@@ -94,7 +94,7 @@
 (defun verify-status (status)
   (let ((type (cffi:foreign-enum-keyword 'amqp-status-enum status)))
     (unless (eq type :amqp-status-ok)
-      (error 'rabbitmq-library-error :return-code type))
+      (raise-rabbitmq-library-error status))
     type))
 
 (defun verify-rpc-reply (state result)
