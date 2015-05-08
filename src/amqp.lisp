@@ -264,7 +264,8 @@ CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
                     unless def
                     do (free-and-raise-error "Unknown property in alist: ~s" key)
                     unless (typep value (fourth def))
-                    do (free-and-raise-error "Illegal type for ~s: ~s. Expected: ~s" (first def) (type-of value) (fourth def))
+                    do (free-and-raise-error "Illegal type for ~s: ~s. Expected: ~s"
+                                             (first def) (type-of value) (fourth def))
                     do (setf flags (logior flags (fifth def)))
                     append (list (second def) (ecase (third def)
                                                 (:string (string-native value))
