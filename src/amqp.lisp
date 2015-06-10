@@ -509,7 +509,7 @@ subscription queues are bound to a topic exchange."
   (with-state (state conn)
     (unwind-protect
          (with-bytes-strings ((queue-bytes queue))
-           (amqp-queue-delete state channel queue-bytes (if if-unused 1 0) (if if-empty 1 0)))
+           (verify-rpc-framing-call conn (amqp-queue-delete state channel queue-bytes (if if-unused 1 0) (if if-empty 1 0))))
       (maybe-release-buffers state))))
 
 (defun basic-consume (conn channel queue &key consumer-tag no-local no-ack exclusive arguments)
