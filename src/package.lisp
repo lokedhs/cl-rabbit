@@ -33,7 +33,8 @@
            #:rabbitmq-server-error
            #:socket-open
            #:tcp-socket-new
-           #:with-connection))
+           #:with-connection
+           #:version))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)

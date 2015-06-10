@@ -579,3 +579,6 @@ retrieved has been processed"
             (let ((,conn ,conn-sym))
               ,@body)
          (destroy-connection ,conn-sym)))))
+
+(defun version ()
+  (amqp-version))

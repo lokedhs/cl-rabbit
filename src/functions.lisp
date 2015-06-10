@@ -195,3 +195,5 @@
 (cffi:defcfun ("amqp_simple_wait_frame" amqp-simple-wait-frame) :int
   (state amqp-connection-state-t)
   (decoded-framce (:pointer (:struct amqp-frame-t))))
+
+(cffi:defcfun ("amqp_version" amqp-version) :string)
