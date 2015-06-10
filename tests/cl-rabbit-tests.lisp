@@ -17,11 +17,9 @@
                 `(progn ,@body)))))))
 
 (fiveam:test version-test
-  (with-connection (conn)
-    (declare (ignore conn))
-    (let ((version (version)))
-      (fiveam:is (stringp version))
-      (fiveam:is (plusp (length version))))))
+  (let ((version (version)))
+    (fiveam:is (stringp version))
+    (fiveam:is (plusp (length version)))))
 
 (define-rabbitmq-test (connect-test conn)
   (fiveam:is (not (null conn))))
