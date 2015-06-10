@@ -1,6 +1,6 @@
 (in-package :cl-rabbit.tests)
 
-(declaim (optimize (speed 0) (safety 3) (debug 0)))
+(declaim (optimize (speed 0) (safety 3) (debug 3)))
 
 (defmacro define-rabbitmq-test ((name conn &optional socket) &body body)
   (check-type name symbol)
