@@ -34,7 +34,9 @@
            #:socket-open
            #:tcp-socket-new
            #:with-connection
-           #:version))
+           #:version
+           #:queue-purge
+           #:queue-delete))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)

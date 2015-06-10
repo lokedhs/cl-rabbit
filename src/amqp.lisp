@@ -494,6 +494,24 @@ subscription queues are bound to a topic exchange."
              nil))
       (maybe-release-buffers state))))
 
+(defun queue-purge (conn channel queue)
+  (check-type channel integer)
+  (check-type queue string)
+  (with-state (state conn)
+    (unwind-protect
+         (with-bytes-strings ((queue-bytes queue))
+           (amqp-queue-purge state channel queue-bytes))
+      (maybe-release-buffers state))))
+
+(defun queue-delete (conn channel queue &key if-unused if-empty)
+  (check-type channel integer)
+  (check-type queue string)
+  (with-state (state conn)
+    (unwind-protect
+         (with-bytes-strings ((queue-bytes queue))
+           (amqp-queue-delete state channel queue-bytes (if if-unused 1 0) (if if-empty 1 0)))
+      (maybe-release-buffers state))))
+
 (defun basic-consume (conn channel queue &key consumer-tag no-local no-ack exclusive arguments)
   (check-type channel integer)
   (check-type queue string)

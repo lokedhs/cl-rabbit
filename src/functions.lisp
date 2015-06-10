@@ -173,6 +173,18 @@
   (routing-key (:struct amqp-bytes-t))
   (arguments (:struct amqp-table-t)))
 
+(cffi:defcfun ("amqp_queue_purge" amqp-queue-purge) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (queue (:struct amqp-bytes-t)))
+
+(cffi:defcfun ("amqp_queue_delete" amqp-queue-delete) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (queue (:struct amqp-bytes-t))
+  (if-unused amqp-boolean-t)
+  (if-empty amqp-boolean-t))
+
 (cffi:defcfun ("amqp_basic_consume" amqp-basic-consume) :pointer
   (state amqp-connection-state-t)
   (channel amqp-channel-t)
