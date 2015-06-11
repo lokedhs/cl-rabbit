@@ -577,7 +577,7 @@ Passing in NIL will result in blocking behavior."
   (with-state (state conn)
     (unwind-protect
          (with-bytes-strings ((consumer-tag-bytes consumer-tag))
-           (verify-rpc-reply state (amqp-basic-cancel state channel consumer-tag-bytes)))
+           (verify-rpc-framing-call state (amqp-basic-cancel state channel consumer-tag-bytes)))
       (maybe-release-buffers state))))
 
 ;; Currently disabled, since it leaves the input buffer in an unpredictable state
