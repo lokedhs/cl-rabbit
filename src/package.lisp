@@ -36,7 +36,8 @@
            #:with-connection
            #:version
            #:queue-purge
-           #:queue-delete))
+           #:queue-delete
+           #:rabbitmq-library-error))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)
