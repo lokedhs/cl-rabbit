@@ -16,6 +16,10 @@
              (format out "AMQP library error: ~a" (rabbitmq-library-error/error-description condition))))
   (:documentation "Error that is raised when an AMQP call fails"))
 
+(defmethod print-object ((obj rabbitmq-library-error) stream)
+  (print-unreadable-safely (error-description) obj stream
+    (format stream "~s" error-description)))
+
 (defun raise-rabbitmq-library-error (code)
   (let ((string-ptr (amqp-error-string2 code)))
     (let ((description (cffi:foreign-string-to-lisp string-ptr)))
