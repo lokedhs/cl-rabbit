@@ -40,7 +40,8 @@
            #:rabbitmq-library-error
            #:rabbitmq-library-error/error-code
            #:rabbitmq-library-error/error-description
-           #:rabbitmq-server-error/type))
+           #:rabbitmq-server-error/type
+           #:basic-cancel))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)

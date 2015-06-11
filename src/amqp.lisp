@@ -571,6 +571,15 @@ Passing in NIL will result in blocking behavior."
                (amqp-destroy-envelope envelope))))
       (maybe-release-buffers state))))
 
+(defun basic-cancel (conn channel consumer-tag)
+  (check-type channel integer)
+  (check-type consumer-tag string)
+  (with-state (state conn)
+    (unwind-protect
+         (with-bytes-strings ((consumer-tag-bytes consumer-tag))
+           (verify-rpc-reply state (amqp-basic-cancel state channel consumer-tag-bytes)))
+      (maybe-release-buffers state))))
+
 ;; Currently disabled, since it leaves the input buffer in an unpredictable state
 #+nil
 (defun basic-get (conn channel queue &key no-ack)

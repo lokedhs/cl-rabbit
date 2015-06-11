@@ -201,6 +201,11 @@
   (timeout (:pointer (:struct timeval)))
   (flags :int))
 
+(cffi:defcfun ("amqp_basic_cancel" amqp-basic-cancel) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (consumer-tag (:struct amqp-bytes-t)))
+
 (cffi:defcfun ("amqp_destroy_envelope" amqp-destroy-envelope) :void
   (envelope (:pointer (:struct amqp-envelope-t))))
 
