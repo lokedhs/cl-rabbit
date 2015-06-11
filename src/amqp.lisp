@@ -17,9 +17,11 @@
   (:documentation "Error that is raised when an AMQP call fails"))
 
 (defun raise-rabbitmq-library-error (code)
-  (let ((string-ptr (amqp-error-string2 code)))
-    (let ((description (cffi:foreign-string-to-lisp string-ptr)))
-      (error 'rabbitmq-library-error :error-code code :error-description description))))
+  (let* ((string-ptr (amqp-error-string2 code))
+         (description (cffi:foreign-string-to-lisp string-ptr)))
+    (error 'rabbitmq-library-error
+           :error-code (cffi:foreign-enum-keyword 'amqp-status-enum code)
+           :error-description description)))
 
 (define-condition rabbitmq-server-error (rabbitmq-error)
   ((type :type keyword
