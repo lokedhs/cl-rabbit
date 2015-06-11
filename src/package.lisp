@@ -37,7 +37,10 @@
            #:version
            #:queue-purge
            #:queue-delete
-           #:rabbitmq-library-error))
+           #:rabbitmq-library-error
+           #:rabbitmq-library-error/error-code
+           #:rabbitmq-library-error/error-description
+           #:rabbitmq-server-error/type))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)
