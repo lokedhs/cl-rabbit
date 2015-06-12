@@ -440,7 +440,11 @@ following property keywords are accepted:
 
 This method creates or checks a queue. When creating a new queue the
 client can specify various properties that control the durability of
-the queue and its contents, and the level of sharing for the queue."
+the queue and its contents, and the level of sharing for the queue.
+
+This function returns three values: The name of the queue, the number
+of messages waiting on the queue, the number of consumers for this
+queue."
   (check-type channel integer)
   (check-type queue (or null string))
   (with-state (state conn)
