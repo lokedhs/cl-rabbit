@@ -63,7 +63,7 @@
   (frame-max :int)
   (heartbeat :int)
   (properties (:pointer (:struct amqp-table-t)))
-  (sasl-method amqp-sasl-method-enum)
+  (sasl-method :int #+nil amqp-sasl-method-enum)
   (user :string)
   (password :string))
 

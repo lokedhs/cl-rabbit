@@ -192,7 +192,9 @@ PROPERTIES - a table of properties to send to the broker"
       (cffi:with-foreign-objects ((native-table '(:struct amqp-table-t)))
         (setf (cffi:mem-ref native-table '(:struct amqp-table-t)) table)
         (let ((reply (amqp-login-sasl-plain-with-properties state vhost channel-max frame-max heartbeat native-table
-                                                            :amqp-sasl-method-plain user password)))
+                                                            (cffi:foreign-enum-value 'amqp-sasl-method-enum
+                                                                                     :amqp-sasl-method-plain)
+                                                            user password)))
           (verify-rpc-reply state reply))))))
 
 (defun channel-open (conn channel)
