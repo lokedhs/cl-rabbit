@@ -237,7 +237,8 @@ CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
     (:type type :string string ,amqp-basic-type-flag)
     (:user-id user-id :string string ,amqp-basic-user-id-flag)
     (:app-id app-id :string string ,amqp-basic-app-id-flag)
-    (:cluster-id cluster-id :string string ,amqp-basic-cluster-id-flag)))
+    (:cluster-id cluster-id :string string ,amqp-basic-cluster-id-flag)
+    (:headers headers :table list ,amqp-basic-headers-flag)))
 
 (defun load-properties-to-alist (props)
   (loop
@@ -248,7 +249,8 @@ CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
                (cons (first def)
                      (ecase (third def)
                        (:string (bytes->string value))
-                       (:integer value))))))
+                       (:integer value)
+                       (:table (amqp-table->lisp value)))))))
 
 (defun fill-in-properties-alist (properties)
   (let ((allocated-values nil)

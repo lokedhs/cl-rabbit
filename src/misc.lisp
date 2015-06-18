@@ -157,6 +157,16 @@
              (call-with-amqp-table #',fn ,values-sym)
              (,fn amqp-empty-table))))))
 
+(defun amqp-table->lisp (table)
+  (declare (ignore table))
+  (error "amqp-table-t references can't be read as lisp objects right now")
+  #+nil(loop
+     with num-entries = (cffi:foreign-slot-value table '(:struct amqp-table-t) 'num-entries)
+     with entry-buffer = (cffi:foreign-slot-value table '(:struct amqp-table-t) 'entries)
+     for i from 0 below num-entries
+     for e = (cffi:mem-aref entry-buffer '(:struct amqp-table-entry-t) i)
+     collect e))
+
 (defmacro print-unreadable-safely ((&rest slots) object stream &body body)
   "A version of PRINT-UNREADABLE-OBJECT and WITH-SLOTS that is safe to use with unbound slots"
   (let ((object-copy (gensym "OBJECT"))
