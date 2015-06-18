@@ -7,6 +7,8 @@
       (login-sasl-plain conn "/" "guest" "guest")
       (channel-open conn 1)
       (print conn)
+      (queue-declare conn 1 :queue "foo" :durable t :arguments '(("x-expires" . 10000)))
+      (queue-bind conn 1 :queue "foo" :exchange "test-ex" :routing-key "#")
       (basic-publish conn 1
                      :exchange "test-ex"
                      :routing-key "xx"
@@ -20,7 +22,7 @@
       (login-sasl-plain conn "/" "guest" "guest")
       (channel-open conn 1)
       (exchange-declare conn 1 "test-ex" "topic")
-      (let ((queue-name (queue-declare conn 1 :auto-delete t)))
+      (let ((queue-name "foo"))
         (queue-bind conn 1 :queue queue-name :exchange "test-ex" :routing-key "xx")
         (basic-consume conn 1 queue-name)
         (let* ((result (consume-message conn))
