@@ -38,8 +38,14 @@
   (state amqp-connection-state-t))
 
 (cffi:defcfun ("amqp_tcp_socket_set_sockfd" amqp-tcp-socket-set-sockfd) :void
-  (base amqp-socket-t-ptr)
-  (sockfs :int))
+  (self amqp-socket-t-ptr)
+  (sockfd :int))
+
+(cffi:defcfun ("amqp_get_sockfd" amqp-get-sockfd) :int
+  (state amqp-connection-state-t))
+
+(cffi:defcfun ("amqp_socket_get_sockfd" amqp-socket-get-sockfd) :int
+  (self amqp-socket-t-ptr))
 
 (cffi:defcfun ("amqp_socket_open" amqp-socket-open) :int
   (self :pointer)
