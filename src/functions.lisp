@@ -220,3 +220,15 @@
   (decoded-framce (:pointer (:struct amqp-frame-t))))
 
 (cffi:defcfun ("amqp_version" amqp-version) :string)
+
+(cffi:defcfun ("amqp_tx_select" amqp-tx-select) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t))
+
+(cffi:defcfun ("amqp_tx_commit" amqp-tx-commit) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t))
+
+(cffi:defcfun ("amqp_tx_rollback" amqp-tx-rollback) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t))
