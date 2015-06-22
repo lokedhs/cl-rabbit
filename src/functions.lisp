@@ -232,3 +232,7 @@
 (cffi:defcfun ("amqp_tx_rollback" amqp-tx-rollback) :pointer
   (state amqp-connection-state-t)
   (channel amqp-channel-t))
+
+(cffi:defcfun ("amqp_confirm_select" amqp-confirm-select) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t))
