@@ -122,13 +122,24 @@
   (properties :pointer)
   (body (:struct amqp-bytes-t)))
 
-(cffi:defcfun ("amqp_exchange_declare" amqp-exchange-declare) :pointer
+(cffi:defcfun ("amqp_exchange_declare" amqp-exchange-declare-0-5) :pointer
   (state amqp-connection-state-t)
   (channel amqp-channel-t)
   (exchange (:struct amqp-bytes-t))
   (type (:struct amqp-bytes-t))
   (passive amqp-boolean-t)
   (durable amqp-boolean-t)
+  (arguments (:struct amqp-table-t)))
+
+(cffi:defcfun ("amqp_exchange_declare" amqp-exchange-declare-0-6) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (exchange (:struct amqp-bytes-t))
+  (type (:struct amqp-bytes-t))
+  (passive amqp-boolean-t)
+  (durable amqp-boolean-t)
+  (auto-delete amqp-boolean-t)
+  (internal amqp-boolean-t)
   (arguments (:struct amqp-table-t)))
 
 (cffi:defcfun ("amqp_exchange_delete" amqp-exchange-delete) :pointer

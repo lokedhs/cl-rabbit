@@ -9,7 +9,8 @@
   :depends-on (:cffi
                :cffi-libffi
                :alexandria
-               :babel)
+               :babel
+               :cl-ppcre)
   :components ((:module src
                         :serial t
                         :components ((:file "package")

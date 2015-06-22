@@ -16,6 +16,23 @@
              (format out "AMQP library error: ~a" (rabbitmq-library-error/error-description condition))))
   (:documentation "Error that is raised when an AMQP call fails"))
 
+(defun %check-client-version (name major minor patch)
+  (multiple-value-bind (match strings)
+      (cl-ppcre:scan-to-strings "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$" name)
+    (unless match
+      (error "Version number reported from library has unexpected format: ~s" name))
+    (let ((library-major (parse-integer (aref strings 0)))
+          (library-minor (parse-integer (aref strings 1)))
+          (library-patch (parse-integer (aref strings 2))))
+      (or (> library-major major)
+          (and (= library-major major)
+               (or (> library-minor minor)
+                   (and (= library-minor minor)
+                        (>= library-patch patch))))))))
+
+(defun check-client-version (major minor patch)
+  (%check-client-version (version) major minor patch))
+
 (defun raise-rabbitmq-library-error (code)
   (let* ((string-ptr (amqp-error-string2 code))
          (description (cffi:foreign-string-to-lisp string-ptr)))
@@ -399,18 +416,30 @@ following property keywords are accepted:
                  (send-with-data (list 'len 0 'bytes (cffi-sys:null-pointer))))))
       (maybe-release-buffers state))))
 
-(defun exchange-declare (conn channel exchange type &key passive durable arguments)
+(defun exchange-declare (conn channel exchange type &key passive durable auto-delete internal arguments)
   (check-type channel integer)
   (check-type exchange string)
   (check-type type string)
-  (with-state (state conn)
-    (unwind-protect
-         (with-bytes-strings ((exchange-bytes exchange)
-                              (type-bytes type))
-           (with-amqp-table (table arguments)
-             (verify-rpc-framing-call state (amqp-exchange-declare state channel exchange-bytes type-bytes
-                                                                   (if passive 1 0) (if durable 1 0) table))))
-      (maybe-release-buffers state))))
+  (let ((version-0-6 (check-client-version 0 6 0)))
+    (unless version-0-6
+      (when auto-delete
+        (error ":AUTO-DELETE is not supported in rabbitmq-c versions before 0.6.0"))
+      (when internal
+        (error ":INTERNAL is not supported in rabbitmq-c versions before 0.6.0")))
+    (with-state (state conn)
+      (unwind-protect
+           (with-bytes-strings ((exchange-bytes exchange)
+                                (type-bytes type))
+             (with-amqp-table (table arguments)
+               (if version-0-6
+                   (verify-rpc-framing-call state (amqp-exchange-declare-0-6 state channel exchange-bytes type-bytes
+                                                                             (if passive 1 0) (if durable 1 0)
+                                                                             (if auto-delete 1 0) (if internal 1 0)
+                                                                             table))
+                   (verify-rpc-framing-call state (amqp-exchange-declare-0-5 state channel exchange-bytes type-bytes
+                                                                             (if passive 1 0) (if durable 1 0)
+                                                                             table)))))
+        (maybe-release-buffers state)))))
 
 (defun exchange-delete (conn channel exchange &key if-unused)
   (check-type channel integer)

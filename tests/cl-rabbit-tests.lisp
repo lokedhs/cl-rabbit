@@ -31,10 +31,35 @@
   (fiveam:is (stringp queue))
   (fiveam:is (plusp (length queue))))
 
+(defun ensure-exchange (exchange)
+  (fiveam:is (stringp exchange))
+  (fiveam:is (plusp (length exchange))))
+
 (fiveam:test version-test
   (let ((version (version)))
-    (fiveam:is (stringp version))
-    (fiveam:is (plusp (length version)))))
+    (fiveam:is-true (stringp version))
+    (fiveam:is-true (plusp (length version)))
+    (fiveam:is-true (cl-ppcre:scan "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$" version))))
+
+(fiveam:test version-comparator-test
+  (fiveam:is-true (cl-rabbit::%check-client-version "0.0.0" 0 0 0))
+  (fiveam:is-true (cl-rabbit::%check-client-version "1.0.0" 1 0 0))
+  (fiveam:is-false (cl-rabbit::%check-client-version "1.0.0" 1 1 0))
+  (fiveam:is-false (cl-rabbit::%check-client-version "1.0.0" 1 1 1))
+  (fiveam:is-false (cl-rabbit::%check-client-version "1.3.6" 2 1 1))
+  (fiveam:is-true (cl-rabbit::%check-client-version "1.3.6" 1 3 6))
+  (fiveam:is-true (cl-rabbit::%check-client-version "1.3.6" 1 3 5))
+  (fiveam:is-true (cl-rabbit::%check-client-version "1.3.6" 1 2 6))
+  (fiveam:is-true (cl-rabbit::%check-client-version "2.3.6" 1 3 6))
+  (fiveam:is-true (cl-rabbit::%check-client-version "2.3.6" 1 5 9))
+  (fiveam:is-false (cl-rabbit::%check-client-version "2.3.6" 2 5 0))
+  (fiveam:is-false (cl-rabbit::%check-client-version "3.0.9" 3 0 10))
+  (fiveam:signals error
+    (cl-rabbit::%check-client-version "3.0.9.1" 1 0 0))
+  (fiveam:signals error
+    (cl-rabbit::%check-client-version "3.0" 1 0 0))
+  (fiveam:signals error
+    (cl-rabbit::%check-client-version "3" 1 0 0)))
 
 (define-rabbitmq-test (connect-test conn)
   (fiveam:is (not (null conn))))
@@ -57,3 +82,15 @@
     (with-rabbitmq-socket (conn)
       (fiveam:signals cl-rabbit:rabbitmq-server-error
         (queue-declare conn 1 :queue name :passive t)))))
+
+(fiveam:test declare-named-exchange-test
+  (let ((name (make-random-name)))
+    (with-rabbitmq-socket (conn)
+      (exchange-declare conn 1 name "topic"))
+    (with-rabbitmq-socket (conn)
+      (exchange-declare conn 1 name "topic" :passive t))
+    (with-rabbitmq-socket (conn)
+      (exchange-delete conn 1 name))
+    (with-rabbitmq-socket (conn)
+      (fiveam:signals cl-rabbit:rabbitmq-server-error
+        (exchange-declare conn 1 name "topic" :passive t)))))
