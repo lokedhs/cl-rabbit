@@ -205,6 +205,19 @@ PROPERTIES - a table of properties to send to the broker"
       (maybe-release-buffers state))))
 
 (defun channel-flow (conn channel active)
+  "Enable/disable flow from peer.
+
+This method asks the peer to pause or restart the flow of content data
+sent by a consumer. This is a simple flow-control mechanism that a
+peer can use to avoid overflowing its queues or otherwise finding
+itself receiving more messages than it can process. Note that this
+method is not intended for window control. It does not affect contents
+returned by Basic.Get-Ok methods.
+
+Parameters:
+CONN - the connection object
+CHANNEL - the channel that should be updated
+ACTIVE - a boolean indicating if flow should be enabled or disabled"
   (check-type channel integer)
   (with-state (state conn)
     (unwind-protect
