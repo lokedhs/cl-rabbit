@@ -43,6 +43,10 @@
            #:rabbitmq-server-error/type
            #:basic-cancel))
 
+(defpackage :cl-rabbit.async
+  (:use :cl :cl-rabbit)
+  (:documentation "High-level async API"))
+
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)
   (:documentation "Examples for cl-rabbit"))

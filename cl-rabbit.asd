@@ -10,11 +10,13 @@
                :cffi-libffi
                :alexandria
                :babel
-               :cl-ppcre)
+               :cl-ppcre
+               :bordeaux-threads)
   :components ((:module src
                         :serial t
                         :components ((:file "package")
                                      (cffi-grovel:grovel-file "grovel")
                                      (:file "functions")
                                      (:file "misc")
-                                     (:file "amqp")))))
+                                     (:file "amqp")
+                                     (:file "async")))))
