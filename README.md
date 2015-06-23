@@ -1,6 +1,8 @@
 cl-rabbit - Common Lisp interface to RabbitMQ
 =============================================
 
+Author: Elias Mårtenson, lokedhs@gmail.com
+
 This library is a CFFI-based interface to the RabbitMQ client
 libraries with an interface that is designed to be fairly close to the
 native C API.
