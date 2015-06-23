@@ -14,3 +14,9 @@ Quicklisp:
 
 Please look at the file `examples.lisp` for a simple example of using
 the library.
+
+Please note that the underlying C API is still in beta, which means
+that the API itself sometimes undergoes breaking changes. This project
+attempts to work around this as well as possible, but there may be
+cases where there are incompatibilities. Please let me know if any
+problems are seen.
