@@ -41,7 +41,9 @@
            #:rabbitmq-library-error/error-code
            #:rabbitmq-library-error/error-description
            #:rabbitmq-server-error/type
-           #:basic-cancel))
+           #:basic-cancel
+           #:rabbitmq-server-error/reply-code
+           #:rabbitmq-server-error/message))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)

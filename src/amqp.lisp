@@ -41,12 +41,18 @@
            :error-description description)))
 
 (define-condition rabbitmq-server-error (rabbitmq-error)
-  ((type :type keyword
-         :initarg :type
-         :reader rabbitmq-server-error/type
-         :documentation "Exception type as returned by the server"))
+  ((reply-code :type integer
+               :initarg :reply-code
+               :initform 0
+               :reader rabbitmq-server-error/reply-code)
+   (message    :type string
+               :initarg :message
+               :initform "Unknown error"
+               :reader rabbitmq-server-error/message))
   (:report (lambda (condition out)
-             (format out "RPC error: ~s" (slot-value condition 'type))))
+             (format out "RPC error: ~a: ~a"
+                     (slot-value condition 'reply-code)
+                     (slot-value condition 'message))))
   (:documentation "Error that is raised when the server reports an error condition"))
 
 (defclass connection ()
@@ -116,12 +122,28 @@
       (raise-rabbitmq-library-error status))
     type))
 
+(defun raise-rabbitmq-server-error (result)
+  (defparameter *res* result)
+  (let* ((reply (getf result 'reply))
+         (id (getf reply 'id))
+         (decoded (getf reply 'decoded)))
+    (cond ((eql id amqp-channel-close-method)
+           (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-code))
+                 (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-text))))
+             (error 'rabbitmq-server-error :reply-code reply-code :message reply-text)))
+          ((eql id amqp-connection-close-method)
+           (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-code))
+                 (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-text))))
+             (error 'rabbitmq-server-error :reply-code reply-code :message reply-text)))
+          (t
+           (error 'rabbitmq-server-error)))))
+
 (defun verify-rpc-reply (state result)
   (declare (ignore state))
   (let ((reply-type (cffi:foreign-enum-keyword 'amqp-response-type-enum (getf result 'reply-type))))
     (case reply-type
       (:amqp-response-normal reply-type)
-      (:amqp-response-server-exception (error 'rabbitmq-server-error :type reply-type))
+      (:amqp-response-server-exception (raise-rabbitmq-server-error result))
       (:amqp-response-library-exception (raise-rabbitmq-library-error (getf result 'library-error)))
       (t (error "Unexpected error: ~s" reply-type)))))
 

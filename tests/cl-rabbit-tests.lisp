@@ -94,3 +94,10 @@
     (with-rabbitmq-socket (conn)
       (fiveam:signals cl-rabbit:rabbitmq-server-error
         (exchange-declare conn 1 name "topic" :passive t)))))
+
+(fiveam:test get-error-message-test
+  (with-rabbitmq-socket (conn)
+    (handler-case
+        (queue-declare conn 1 :queue "nonexistent" :passive t)
+      (rabbitmq-server-error (condition)
+        (fiveam:is (plusp (rabbitmq-server-error/reply-code condition)))))))

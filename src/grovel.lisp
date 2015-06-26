@@ -237,6 +237,18 @@
          (routing-key "routing_key" :type (:struct amqp-bytes-t))
          (message "message" :type (:struct amqp-message-t)))
 
+(cstruct amqp-channel-close-t "amqp_channel_close_t"
+         (reply-code "reply_code" :type uint16-t)
+         (reply-text "reply_text" :type (:struct amqp-bytes-t))
+         (class-id "class_id" :type uint16-t)
+         (method-id "method_id" :type uint16-t))
+
+(cstruct amqp-connection-close-t "amqp_connection_close_t"
+         (reply-code "reply_code" :type uint16-t)
+         (reply-text "reply_text" :type (:struct amqp-bytes-t))
+         (class-id "class_id" :type uint16-t)
+         (method-id "method_id" :type uint16-t))
+
 (cvar ("amqp_empty_table" amqp-empty-table) (:struct amqp-table-t))
 (cvar ("amqp_empty_bytes" amqp-empty-bytes) (:struct amqp-bytes-t))
 
