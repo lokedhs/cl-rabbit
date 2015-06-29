@@ -192,6 +192,14 @@ or SSL-SOCKET-NEW."
   (check-type port alexandria:positive-integer)
   (verify-status (amqp-socket-open socket host port)))
 
+(defun update-product-name-in-table (table)
+  (append (list (cons "product" "cl-rabbit")
+                (cons "version" "0.1"))
+          (remove-if (lambda (name)
+                     (or (equal name "product")
+                         (equal name "version")))
+                   table :key #'car)))
+
 (defun login-sasl-plain (conn vhost user password
                          &key
                            (channel-max 0) (frame-max 131072) (heartbeat 0) properties)
@@ -226,7 +234,7 @@ PROPERTIES - a table of properties to send to the broker"
   (check-type user string)
   (check-type password string)
   (with-state (state conn)
-    (with-amqp-table (table properties)
+    (with-amqp-table (table (update-product-name-in-table properties))
       (cffi:with-foreign-objects ((native-table '(:struct amqp-table-t)))
         (setf (cffi:mem-ref native-table '(:struct amqp-table-t)) table)
         (let ((reply (amqp-login-sasl-plain-with-properties state vhost channel-max frame-max heartbeat native-table
