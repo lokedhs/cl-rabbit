@@ -123,7 +123,6 @@
     type))
 
 (defun raise-rabbitmq-server-error (result)
-  (defparameter *res* result)
   (let* ((reply (getf result 'reply))
          (id (getf reply 'id))
          (decoded (getf reply 'decoded)))
@@ -521,7 +520,7 @@ queue."
            (with-amqp-table (table arguments)
              (let ((result (amqp-queue-declare state channel queue-bytes (if passive 1 0) (if durable 1 0)
                                                (if exclusive 1 0) (if auto-delete 1 0) table)))
-               (verify-rpc-reply state (amqp-get-rpc-reply state))
+               (verify-rpc-framing-call state result)
                (values (bytes->string (cffi:foreign-slot-value result
                                                                '(:struct amqp-queue-declare-ok-t)
                                                                'queue))
@@ -597,7 +596,7 @@ subscription queues are bound to a topic exchange."
            (with-amqp-table (table arguments)
              (let ((result (amqp-basic-consume state channel queue-bytes consumer-tag-bytes
                                                (if no-local 1 0) (if no-ack 1 0) (if exclusive 1 0) table)))
-               (verify-rpc-reply state (amqp-get-rpc-reply state))
+               (verify-rpc-framing-call state result)
                (bytes->string (cffi:foreign-slot-value result '(:struct amqp-basic-consume-ok-t) 'consumer-tag)))))
       (maybe-release-buffers state))))
 
