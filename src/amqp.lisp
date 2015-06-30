@@ -680,6 +680,12 @@ retrieved has been processed"
            (verify-rpc-reply state (amqp-basic-get state channel queue-bytes (if no-ack 1 0))))
       (maybe-release-buffers state))))
 
+(defun data-in-buffer (conn)
+  (with-state (state conn)
+    (unwind-protect
+         (not (zerop (amqp-data-in-buffer state)))
+      (maybe-release-buffers state))))
+
 (defun frames-enqueued (conn)
   (with-state (state conn)
     (unwind-protect
