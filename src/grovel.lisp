@@ -170,7 +170,17 @@
 
 (cstruct amqp-frame-t "amqp_frame_t"
          (frame-type "frame_type" :type uint8-t)
-         (channel "channel" :type amqp-channel-t))
+         (channel "channel" :type amqp-channel-t)
+         (payload-method "payload.method" :type (:struct amqp-method-t))
+         (payload-properties-class-id "payload.properties.class_id" :type uint16-t)
+         (payload-properties-body-size "payload.properties.body_size" :type uint64-t)
+         (payload-properties-decoded "payload.properties.decoded" :type :pointer)
+         (payload-properties-raw "payload.properties.raw" :type (:struct amqp-bytes-t))
+         (payload-body-fragment "payload.body_fragment" :type (:struct amqp-bytes-t))
+         (payload-protocol-header-transport-high "payload.protocol_header.transport_high" :type uint8-t)
+         (payload-protocol-header-transport-low "payload.protocol_header.transport_low" :type uint8-t)
+         (payload-protocol-header-protocol-version-major "payload.protocol_header.protocol_version_major" :type uint8-t)
+         (payload-protocol-header-protocol-version-minor "payload.protocol_header.protocol_version_minor" :type uint8-t))
 
 (cstruct amqp-decimal-t "amqp_decimal_t"
          (decimals "decimals" :type uint8-t)

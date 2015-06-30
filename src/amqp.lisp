@@ -226,8 +226,7 @@ HEARTBEAT - the number of seconds between heartbeat frame to request
 of the broker. A value of 0 disables heartbeats. Note rabbitmq-c only
 has partial support for hearts, as of v0.4.0 heartbeats are only
 serviced during BASIC-PUBLISH, SIMPLE-WAIT-FRAME and
-SIMPLE-WAIT-FRAME-NOBLOCK (the last two are currently not implemented
-in the Common Lisp API)
+SIMPLE-WAIT-FRAME-NOBLOCK.
 
 PROPERTIES - a table of properties to send to the broker"
   (check-type vhost string)
@@ -680,6 +679,35 @@ retrieved has been processed"
          (with-bytes-string (queue-bytes queue)
            (verify-rpc-reply state (amqp-basic-get state channel queue-bytes (if no-ack 1 0))))
       (maybe-release-buffers state))))
+
+(defun frames-enqueued (conn)
+  (with-state (state conn)
+    (unwind-protect
+         (not (zerop (amqp-frames-enqueued state)))
+      (maybe-release-buffers state))))
+
+(defun simple-wait-frame (conn)
+  (with-state (state conn)
+    (cffi:with-foreign-objects ((decoded '(:struct amqp-frame-t)))
+      (let* ((result (amqp-simple-wait-frame state decoded))
+             (result-tag (cffi:foreign-enum-keyword 'amqp-status-enum result)))
+        (log:info "Channel: ~a, type: ~a"
+                  (cffi:foreign-slot-value decoded '(:struct amqp-frame-t) 'channel)
+                  (cffi:foreign-slot-value decoded '(:struct amqp-frame-t) 'frame-type))
+        (let ((frame-type (cffi:foreign-slot-value decoded '(:struct amqp-frame-t) 'frame-type)))
+          (cond ((= frame-type amqp-frame-method)
+                 (log:info "Method frame: ~s"
+                           (cffi:foreign-slot-value decoded '(:struct amqp-frame-t) 'payload-method)))
+                ((= frame-type amqp-frame-header)
+                 (log:info "Header frame. Class id: ~a, Body size: ~a"
+                           (cffi:foreign-slot-value decoded '(:struct amqp-frame-t) 'payload-properties-class-id)
+                           (cffi:foreign-slot-value decoded '(:struct amqp-frame-t) 'payload-properties-body-size)))
+                ((= frame-type amqp-frame-body)
+                 (log:info "Body frame: ~s"
+                           (cffi:foreign-slot-value decoded '(:struct amqp-frame-t) 'payload-body-fragment)))
+                (t
+                 (log:warn "Unknown frame type: ~s" frame-type))))
+        result-tag))))
 
 (defmacro with-connection ((conn) &body body)
   (let ((conn-sym (gensym "CONN-")))

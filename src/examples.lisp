@@ -6,9 +6,6 @@
       (socket-open socket "localhost" 5672)
       (login-sasl-plain conn "/" "guest" "guest")
       (channel-open conn 1)
-      (print conn)
-      (queue-declare conn 1 :queue "foo" :durable t :arguments '(("x-expires" . 10000)))
-      (queue-bind conn 1 :queue "foo" :exchange "test-ex" :routing-key "#")
       (basic-publish conn 1
                      :exchange "test-ex"
                      :routing-key "xx"

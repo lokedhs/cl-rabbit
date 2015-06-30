@@ -226,9 +226,20 @@
 (cffi:defcfun ("amqp_destroy_envelope" amqp-destroy-envelope) :void
   (envelope (:pointer (:struct amqp-envelope-t))))
 
+(cffi:defcfun ("amqp_data_in_buffer" amqp-data-in-buffer) amqp-boolean-t
+  (state amqp-connection-state-t))
+
+(cffi:defcfun ("amqp_frames_enqueued" amqp-frames-enqueued) amqp-boolean-t
+  (state amqp-connection-state-t))
+
 (cffi:defcfun ("amqp_simple_wait_frame" amqp-simple-wait-frame) :int
   (state amqp-connection-state-t)
-  (decoded-framce (:pointer (:struct amqp-frame-t))))
+  (decoded-frame (:pointer (:struct amqp-frame-t))))
+
+(cffi:defcfun ("amqp_simple_wait_frame_noblock" amqp-simple-wait-frame-noblock) :int
+  (state amqp-connection-state-t)
+  (decoded-frame (:pointer (:struct amqp-frame-t)))
+  (tv (:pointer (:struct timeval))))
 
 (cffi:defcfun ("amqp_version" amqp-version) :string)
 
