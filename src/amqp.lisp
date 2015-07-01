@@ -56,9 +56,12 @@
   (:documentation "Error that is raised when the server reports an error condition"))
 
 (defclass connection ()
-  ((conn    :type cffi:foreign-pointer
-            :initarg :conn
-            :reader connection/native-connection))
+  ((conn     :type cffi:foreign-pointer
+             :initarg :conn
+             :reader connection/native-connection)
+   (closed-p :type t
+             :initform nil
+             :accessor connection/closed-p))
   (:documentation "Class representing a connection to a RabbitMQ server."))
 
 (defmacro with-state ((state conn) &body body)
@@ -162,8 +165,10 @@
     (make-instance 'connection :conn result)))
 
 (defun destroy-connection (conn)
-  (with-state (state conn)
-    (verify-status (amqp-destroy-connection state))))
+  (unless (connection/closed-p conn)
+    (with-state (state conn)
+      (verify-status (amqp-destroy-connection state)))
+    (setf (connection/closed-p conn) t)))
 
 (defun tcp-socket-new (conn)
   "Create a new TCP socket.
@@ -273,13 +278,13 @@ ACTIVE - a boolean indicating if flow should be enabled or disabled"
   "Closes a channel.
 Parameters:
 CONN - the connection object
-CHANNEL - the channel that shoud be closed
+CHANNEL - the channel that should be closed
 CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
   (check-type channel integer)
   (check-type code (or null integer))
   (with-state (state conn)
     (unwind-protect
-         (verify-rpc-framing-call state (amqp-channel-close state channel (or code amqp-reply-success)))
+         (verify-rpc-reply state (amqp-channel-close state channel (or code amqp-reply-success)))
       (maybe-release-buffers state))))
 
 (defparameter *props-mapping*
@@ -713,6 +718,10 @@ retrieved has been processed"
                 (t
                  (log:warn "Unknown frame type: ~s" frame-type))))
         result-tag))))
+
+(defun get-sockfd (conn)
+  (with-state (state conn)
+    (amqp-get-sockfd state)))
 
 (defmacro with-connection ((conn) &body body)
   (let ((conn-sym (gensym "CONN-")))

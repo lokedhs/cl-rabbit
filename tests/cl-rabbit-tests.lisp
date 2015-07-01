@@ -101,3 +101,8 @@
         (queue-declare conn 1 :queue "nonexistent" :passive t)
       (rabbitmq-server-error (condition)
         (fiveam:is (plusp (rabbitmq-server-error/reply-code condition)))))))
+
+(fiveam:test close-channel-test
+ (with-rabbitmq-socket (conn)
+   (channel-open conn 2)
+   (channel-close conn 2)))
