@@ -696,6 +696,7 @@ retrieved has been processed"
          (not (zerop (amqp-frames-enqueued state)))
       (maybe-release-buffers state))))
 
+#+nil
 (defun simple-wait-frame (conn)
   (with-state (state conn)
     (cffi:with-foreign-objects ((decoded '(:struct amqp-frame-t)))
