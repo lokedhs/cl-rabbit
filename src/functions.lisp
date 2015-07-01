@@ -82,7 +82,7 @@
   (channel amqp-channel-t)
   (active (amqp-boolean-t)))
 
-(cffi:defcfun ("amqp_channel_close" amqp-channel-close) :pointer
+(cffi:defcfun ("amqp_channel_close" amqp-channel-close) (:struct amqp-rpc-reply-t)
   (state amqp-connection-state-t)
   (channel amqp-channel-t)
   (code :int))
