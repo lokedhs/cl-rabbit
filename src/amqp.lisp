@@ -611,10 +611,9 @@ subscription queues are bound to a topic exchange."
   "Wait for and consume a message.
 Waits for a basic.deliver method on any channel, upon receipt of
 basic.deliver it reads that message, and returns. If any other method
-is received before basic.deliver, this function will return an
-amqp_rpc_reply_t with ret.reply_type ==
-AMQP_RESPONSE_LIBRARY_EXCEPTION, and ret.library_error ==
-AMQP_STATUS_UNEXPECTED_FRAME. The caller should then call
+is received before basic.deliver, this function will raise a
+RABBITMQ-LIBRARY-ERROR with its error code set
+to :AMQP-UNEXPECTED-FRAME. The caller should then call
 amqp_simple_wait_frame() to read this frame and take appropriate
 action.
 
