@@ -696,30 +696,6 @@ retrieved has been processed"
          (not (zerop (amqp-frames-enqueued state)))
       (maybe-release-buffers state))))
 
-#+nil
-(defun simple-wait-frame (conn)
-  (with-state (state conn)
-    (cffi:with-foreign-objects ((decoded '(:struct amqp-frame-t)))
-      (let* ((result (amqp-simple-wait-frame state decoded))
-             (result-tag (cffi:foreign-enum-keyword 'amqp-status-enum result)))
-        (log:info "Channel: ~a, type: ~a"
-                  (cffi:foreign-slot-value decoded '(:struct amqp-frame-t) 'channel)
-                  (cffi:foreign-slot-value decoded '(:struct amqp-frame-t) 'frame-type))
-        (let ((frame-type (cffi:foreign-slot-value decoded '(:struct amqp-frame-t) 'frame-type)))
-          (cond ((= frame-type amqp-frame-method)
-                 (log:info "Method frame: ~s"
-                           (cffi:foreign-slot-value decoded '(:struct amqp-frame-t) 'payload-method)))
-                ((= frame-type amqp-frame-header)
-                 (log:info "Header frame. Class id: ~a, Body size: ~a"
-                           (cffi:foreign-slot-value decoded '(:struct amqp-frame-t) 'payload-properties-class-id)
-                           (cffi:foreign-slot-value decoded '(:struct amqp-frame-t) 'payload-properties-body-size)))
-                ((= frame-type amqp-frame-body)
-                 (log:info "Body frame: ~s"
-                           (cffi:foreign-slot-value decoded '(:struct amqp-frame-t) 'payload-body-fragment)))
-                (t
-                 (log:warn "Unknown frame type: ~s" frame-type))))
-        result-tag))))
-
 (defun get-sockfd (conn)
   (with-state (state conn)
     (amqp-get-sockfd state)))

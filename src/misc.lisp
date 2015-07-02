@@ -159,7 +159,7 @@
 
 (defun amqp-table->lisp (table)
   (declare (ignore table))
-  (error "amqp-table-t references can't be read as lisp objects right now")
+  (warn "amqp-table-t references can't be read as lisp objects right now")
   #+nil(loop
      with num-entries = (cffi:foreign-slot-value table '(:struct amqp-table-t) 'num-entries)
      with entry-buffer = (cffi:foreign-slot-value table '(:struct amqp-table-t) 'entries)
