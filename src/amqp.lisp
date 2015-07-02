@@ -41,7 +41,10 @@
            :error-description description)))
 
 (define-condition rabbitmq-server-error (rabbitmq-error)
-  ((reply-code :type integer
+  ((method     :type integer
+               :initarg :method
+               :reader rabbitmq-server-error/method)
+   (reply-code :type integer
                :initarg :reply-code
                :initform 0
                :reader rabbitmq-server-error/reply-code)
@@ -132,11 +135,11 @@
     (cond ((eql id amqp-channel-close-method)
            (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-code))
                  (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-text))))
-             (error 'rabbitmq-server-error :reply-code reply-code :message reply-text)))
+             (error 'rabbitmq-server-error :method id :reply-code reply-code :message reply-text)))
           ((eql id amqp-connection-close-method)
            (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-code))
                  (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-text))))
-             (error 'rabbitmq-server-error :reply-code reply-code :message reply-text)))
+             (error 'rabbitmq-server-error :method id :reply-code reply-code :message reply-text)))
           (t
            (error 'rabbitmq-server-error)))))
 
