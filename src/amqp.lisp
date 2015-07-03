@@ -128,14 +128,20 @@
       (raise-rabbitmq-library-error status))
     type))
 
-(defun raise-rabbitmq-server-error (result)
+(defun raise-rabbitmq-server-error (state channel result)
   (let* ((reply (getf result 'reply))
          (id (getf reply 'id))
          (decoded (getf reply 'decoded)))
+
     (cond ((eql id amqp-channel-close-method)
            (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-code))
                  (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-text))))
+             ;; Send an ack to the server to indicate that the close message was received
+             (if channel
+                 (confirm-channel-close state channel)
+                 (warn "Got channel close message and the channel value is not set"))
              (error 'rabbitmq-server-error :method id :reply-code reply-code :message reply-text)))
+
           ((eql id amqp-connection-close-method)
            (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-code))
                  (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-text))))
@@ -143,18 +149,17 @@
           (t
            (error 'rabbitmq-server-error)))))
 
-(defun verify-rpc-reply (state result)
-  (declare (ignore state))
+(defun verify-rpc-reply (state channel result)
   (let ((reply-type (cffi:foreign-enum-keyword 'amqp-response-type-enum (getf result 'reply-type))))
     (case reply-type
       (:amqp-response-normal reply-type)
-      (:amqp-response-server-exception (raise-rabbitmq-server-error result))
+      (:amqp-response-server-exception (raise-rabbitmq-server-error state channel result))
       (:amqp-response-library-exception (raise-rabbitmq-library-error (getf result 'library-error)))
       (t (error "Unexpected error: ~s" reply-type)))))
 
-(defun verify-rpc-framing-call (state result)
+(defun verify-rpc-framing-call (state channel result)
   (when (cffi:null-pointer-p result)
-    (verify-rpc-reply state (amqp-get-rpc-reply state))))
+    (verify-rpc-reply state channel (amqp-get-rpc-reply state))))
 
 (defun maybe-release-buffers (state)
   (amqp-maybe-release-buffers state))
@@ -190,7 +195,7 @@ CONN - the connection object
 CODE - the reason code for closing the connection. Defaults to AMQP_REPLY_SUCCESS."
   (check-type code (or null integer))
   (with-state (state conn)
-    (verify-rpc-framing-call state (amqp-connection-close state (or code amqp-reply-success)))))
+    (verify-rpc-framing-call state nil (amqp-connection-close state (or code amqp-reply-success)))))
 
 (defun socket-open (socket host port)
   "Open a socket connection.
@@ -248,13 +253,13 @@ PROPERTIES - a table of properties to send to the broker"
                                                             (cffi:foreign-enum-value 'amqp-sasl-method-enum
                                                                                      :amqp-sasl-method-plain)
                                                             user password)))
-          (verify-rpc-reply state reply))))))
+          (verify-rpc-reply state nil reply))))))
 
 (defun channel-open (conn channel)
   (check-type channel integer)
   (with-state (state conn)
     (unwind-protect
-         (verify-rpc-framing-call state (amqp-channel-open state channel))
+         (verify-rpc-framing-call state nil (amqp-channel-open state channel))
       (maybe-release-buffers state))))
 
 (defun channel-flow (conn channel active)
@@ -274,7 +279,7 @@ ACTIVE - a boolean indicating if flow should be enabled or disabled"
   (check-type channel integer)
   (with-state (state conn)
     (unwind-protect
-         (verify-rpc-framing-call state (amqp-channel-flow state channel (if active 1 0)))
+         (verify-rpc-framing-call state channel (amqp-channel-flow state channel (if active 1 0)))
       (maybe-release-buffers state))))
 
 (defun channel-close (conn channel &key code)
@@ -287,7 +292,7 @@ CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
   (check-type code (or null integer))
   (with-state (state conn)
     (unwind-protect
-         (verify-rpc-reply state (amqp-channel-close state channel (or code amqp-reply-success)))
+         (verify-rpc-reply state channel (amqp-channel-close state channel (or code amqp-reply-success)))
       (maybe-release-buffers state))))
 
 (defparameter *props-mapping*
@@ -468,13 +473,15 @@ following property keywords are accepted:
                                 (type-bytes type))
              (with-amqp-table (table arguments)
                (if version-0-6
-                   (verify-rpc-framing-call state (amqp-exchange-declare-0-6 state channel exchange-bytes type-bytes
-                                                                             (if passive 1 0) (if durable 1 0)
-                                                                             (if auto-delete 1 0) (if internal 1 0)
-                                                                             table))
-                   (verify-rpc-framing-call state (amqp-exchange-declare-0-5 state channel exchange-bytes type-bytes
-                                                                             (if passive 1 0) (if durable 1 0)
-                                                                             table)))))
+                   (verify-rpc-framing-call state channel
+                                            (amqp-exchange-declare-0-6 state channel exchange-bytes type-bytes
+                                                                       (if passive 1 0) (if durable 1 0)
+                                                                       (if auto-delete 1 0) (if internal 1 0)
+                                                                       table))
+                   (verify-rpc-framing-call state channel
+                                            (amqp-exchange-declare-0-5 state channel exchange-bytes type-bytes
+                                                                       (if passive 1 0) (if durable 1 0)
+                                                                       table)))))
         (maybe-release-buffers state)))))
 
 (defun exchange-delete (conn channel exchange &key if-unused)
@@ -483,7 +490,7 @@ following property keywords are accepted:
   (with-state (state conn)
     (unwind-protect
          (with-bytes-strings ((exchange-bytes exchange))
-           (verify-rpc-framing-call state (amqp-exchange-delete state channel exchange-bytes (if if-unused 1 0))))
+           (verify-rpc-framing-call state channel (amqp-exchange-delete state channel exchange-bytes (if if-unused 1 0))))
       (maybe-release-buffers state))))
 
 (defun exchange-bind (conn channel &key destination source routing-key arguments)
@@ -497,7 +504,7 @@ following property keywords are accepted:
                               (source-bytes source)
                               (routing-key-bytes routing-key))
            (with-amqp-table (table arguments)
-             (verify-rpc-framing-call state
+             (verify-rpc-framing-call state channel
                                       (amqp-exchange-bind state channel destination-bytes source-bytes
                                                           routing-key-bytes table))))
       (maybe-release-buffers state))))
@@ -512,7 +519,7 @@ following property keywords are accepted:
          (with-bytes-strings ((destination-bytes destination)
                               (source-bytes source)
                               (routing-key-bytes routing-key))
-           (verify-rpc-framing-call state
+           (verify-rpc-framing-call state channel
                                     (amqp-exchange-unbind state channel destination-bytes source-bytes
                                                           routing-key-bytes amqp-empty-table)))
       (maybe-release-buffers state))))
@@ -535,7 +542,7 @@ queue."
            (with-amqp-table (table arguments)
              (let ((result (amqp-queue-declare state channel queue-bytes (if passive 1 0) (if durable 1 0)
                                                (if exclusive 1 0) (if auto-delete 1 0) table)))
-               (verify-rpc-framing-call state result)
+               (verify-rpc-framing-call state channel result)
                (values (bytes->string (cffi:foreign-slot-value result
                                                                '(:struct amqp-queue-declare-ok-t)
                                                                'queue))
@@ -560,7 +567,7 @@ subscription queues are bound to a topic exchange."
                               (exchange-bytes exchange)
                               (routing-key-bytes routing-key))
            (with-amqp-table (table arguments)
-             (verify-rpc-framing-call state
+             (verify-rpc-framing-call state channel
                                       (amqp-queue-bind state channel queue-bytes exchange-bytes
                                                        routing-key-bytes table))))
       (maybe-release-buffers state))))
@@ -576,7 +583,7 @@ subscription queues are bound to a topic exchange."
                               (exchange-bytes exchange)
                               (routing-key-bytes routing-key))
            (with-amqp-table (table arguments)
-             (verify-rpc-framing-call state
+             (verify-rpc-framing-call state channel
                                       (amqp-queue-unbind state channel queue-bytes exchange-bytes
                                                          routing-key-bytes table))
              nil))
@@ -597,7 +604,7 @@ subscription queues are bound to a topic exchange."
   (with-state (state conn)
     (unwind-protect
          (with-bytes-strings ((queue-bytes queue))
-           (verify-rpc-framing-call conn (amqp-queue-delete state channel queue-bytes (if if-unused 1 0) (if if-empty 1 0))))
+           (verify-rpc-framing-call conn channel (amqp-queue-delete state channel queue-bytes (if if-unused 1 0) (if if-empty 1 0))))
       (maybe-release-buffers state))))
 
 (defun basic-consume (conn channel queue &key consumer-tag no-local no-ack exclusive arguments)
@@ -611,7 +618,7 @@ subscription queues are bound to a topic exchange."
            (with-amqp-table (table arguments)
              (let ((result (amqp-basic-consume state channel queue-bytes consumer-tag-bytes
                                                (if no-local 1 0) (if no-ack 1 0) (if exclusive 1 0) table)))
-               (verify-rpc-framing-call state result)
+               (verify-rpc-framing-call state channel result)
                (bytes->string (cffi:foreign-slot-value result '(:struct amqp-basic-consume-ok-t) 'consumer-tag)))))
       (maybe-release-buffers state))))
 
@@ -642,7 +649,7 @@ Passing in NIL will result in blocking behavior."
     (unwind-protect
          (with-foreign-timeval (native-timeout timeout)
            (cffi:with-foreign-objects ((envelope '(:struct amqp-envelope-t)))
-             (verify-rpc-reply state (amqp-consume-message state envelope native-timeout 0))
+             (verify-rpc-reply state nil (amqp-consume-message state envelope native-timeout 0))
              (unwind-protect
                   (flet ((getval (slot-name)
                            (cffi:foreign-slot-value envelope '(:struct amqp-envelope-t) slot-name)))
@@ -662,7 +669,7 @@ Passing in NIL will result in blocking behavior."
   (with-state (state conn)
     (unwind-protect
          (with-bytes-strings ((consumer-tag-bytes consumer-tag))
-           (verify-rpc-framing-call state (amqp-basic-cancel state channel consumer-tag-bytes)))
+           (verify-rpc-framing-call state channel (amqp-basic-cancel state channel consumer-tag-bytes)))
       (maybe-release-buffers state))))
 
 ;; Currently disabled, since it leaves the input buffer in an unpredictable state
@@ -702,6 +709,11 @@ retrieved has been processed"
 (defun get-sockfd (conn)
   (with-state (state conn)
     (amqp-get-sockfd state)))
+
+(defun confirm-channel-close (state channel)
+  (cffi:with-foreign-objects ((decoded '(:struct amqp-channel-close-ok-t)))
+    (setf (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-ok-t) 'dummy) 0)
+    (amqp-send-method state channel amqp-channel-close-ok-method decoded)))
 
 (defmacro with-connection ((conn) &body body)
   (let ((conn-sym (gensym "CONN-")))

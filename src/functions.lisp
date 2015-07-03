@@ -258,3 +258,13 @@
 (cffi:defcfun ("amqp_confirm_select" amqp-confirm-select) :pointer
   (state amqp-connection-state-t)
   (channel amqp-channel-t))
+
+(cffi:defcfun ("amqp_send_frame" amqp-send-frame) :int
+  (state amqp-connection-state-t)
+  (frame (:pointer (:struct amqp-frame-t))))
+
+(cffi:defcfun ("amqp_send_method" amqp-send-method) :int
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (id amqp-method-number-t)
+  (decoded :pointer))

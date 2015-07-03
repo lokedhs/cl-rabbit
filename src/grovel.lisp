@@ -160,6 +160,9 @@
 (cstruct amqp-channel-open-ok-t "amqp_channel_open_ok_t"
          (channel-id "channel_id" :type (:struct amqp-bytes-t)))
 
+(cstruct amqp-channel-close-ok-t "amqp_channel_close_ok_t"
+         (dummy "dummy" :type :char))
+
 (cstruct amqp-queue-declare-ok-t "amqp_queue_declare_ok_t"
          (queue "queue" :type (:struct amqp-bytes-t))
          (message-count "message_count" :type uint32-t)
