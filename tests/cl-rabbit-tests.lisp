@@ -116,3 +116,24 @@
     (channel-open conn 1)
     (let ((q (queue-declare conn 1 :exclusive t :auto-delete t)))
       (ensure-queue q))))
+
+(fiveam:test message-properties-table-test
+  (with-rabbitmq-socket (conn)
+    (let ((correlation-id "some-id")
+          (ex "foo-ex")
+          (q (queue-declare conn 1 :exclusive t :auto-delete t)))
+      (exchange-declare conn 1 ex "topic" :durable t)
+      (queue-bind conn 1 :queue q :exchange ex :routing-key "#")
+      (basic-publish conn 1
+                     :exchange ex
+                     :routing-key "foo"
+                     :body "test"
+                     :properties `((:correlation-id . ,correlation-id)))
+      (basic-consume conn 1 q)
+      (let ((msg (consume-message conn :timeout 1)))
+        (fiveam:is (not (null msg)))
+        (let ((properties (message/properties (envelope/message msg))))
+          (let ((received-id (assoc :correlation-id properties)))
+            (fiveam:is (consp received-id))
+            (let ((id-string (cdr received-id)))
+              (fiveam:is (equal correlation-id id-string)))))))))
