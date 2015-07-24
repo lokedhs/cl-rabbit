@@ -43,7 +43,8 @@
            #:rabbitmq-server-error/type
            #:basic-cancel
            #:rabbitmq-server-error/reply-code
-           #:rabbitmq-server-error/message))
+           #:rabbitmq-server-error/message
+           #:rabbitmq-server-error/reply-code-name))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)

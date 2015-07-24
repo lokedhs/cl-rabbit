@@ -58,6 +58,52 @@
                      (slot-value condition 'message))))
   (:documentation "Error that is raised when the server reports an error condition"))
 
+(defgeneric rabbitmq-server-error/reply-code-name (rabbitmq-server-error)
+  (:method ((e rabbitmq-server-error))
+    (let ((code (rabbitmq-server-error/reply-code e)))
+      (cond
+        ((eql code amqp-reply-success) :reply-success)
+        ((eql code amqp-content-too-large) :content-too-large)
+        ((eql code amqp-no-route) :no-route)
+        ((eql code amqp-no-consumers) :no-consumers)
+        ((eql code amqp-access-refused) :access-refused)
+        ((eql code amqp-not-found) :not-found)
+        ((eql code amqp-resource-locked) :resource-locked)
+        ((eql code amqp-precondition-failed) :precondition-failed)
+        ((eql code amqp-connection-forced) :connection-forced)
+        ((eql code amqp-invalid-path) :invalid-path)
+        ((eql code amqp-frame-error) :frame-error)
+        ((eql code amqp-syntax-error) :syntax-error)
+        ((eql code amqp-command-invalid) :command-invalid)
+        ((eql code amqp-channel-error) :channel-error)
+        ((eql code amqp-unexpected-frame) :unexpected-frame)
+        ((eql code amqp-resource-error) :resource-error)
+        ((eql code amqp-not-allowed) :not-allowed)
+        ((eql code amqp-not-implemented) :not-implemented)
+        ((eql code amqp-internal-error) :internal-error)
+        (t :generic-error)))))
+
+(defun raise-rabbitmq-server-error (state channel result)
+  (let* ((reply (getf result 'reply))
+         (id (getf reply 'id))
+         (decoded (getf reply 'decoded)))
+
+    (cond ((eql id amqp-channel-close-method)
+           (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-code))
+                 (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-text))))
+             ;; Send an ack to the server to indicate that the close message was received
+             (if channel
+                 (confirm-channel-close state channel)
+                 (warn "Got channel close message and the channel value is not set"))
+             (error 'rabbitmq-server-error :method id :reply-code reply-code :message reply-text)))
+
+          ((eql id amqp-connection-close-method)
+           (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-code))
+                 (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-text))))
+             (error 'rabbitmq-server-error :method id :reply-code reply-code :message reply-text)))
+          (t
+           (error 'rabbitmq-server-error)))))
+
 (defclass connection ()
   ((conn     :type cffi:foreign-pointer
              :initarg :conn
@@ -127,27 +173,6 @@
     (unless (eq type :amqp-status-ok)
       (raise-rabbitmq-library-error status))
     type))
-
-(defun raise-rabbitmq-server-error (state channel result)
-  (let* ((reply (getf result 'reply))
-         (id (getf reply 'id))
-         (decoded (getf reply 'decoded)))
-
-    (cond ((eql id amqp-channel-close-method)
-           (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-code))
-                 (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-text))))
-             ;; Send an ack to the server to indicate that the close message was received
-             (if channel
-                 (confirm-channel-close state channel)
-                 (warn "Got channel close message and the channel value is not set"))
-             (error 'rabbitmq-server-error :method id :reply-code reply-code :message reply-text)))
-
-          ((eql id amqp-connection-close-method)
-           (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-code))
-                 (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-text))))
-             (error 'rabbitmq-server-error :method id :reply-code reply-code :message reply-text)))
-          (t
-           (error 'rabbitmq-server-error)))))
 
 (defun verify-rpc-reply (state channel result)
   (let ((reply-type (cffi:foreign-enum-keyword 'amqp-response-type-enum (getf result 'reply-type))))
