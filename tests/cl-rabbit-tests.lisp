@@ -112,7 +112,7 @@
     (handler-case
         (queue-declare conn 1 :queue "none" :passive t)
       (rabbitmq-server-error (condition)
-        (fiveam:is (eql (cl-rabbit::rabbitmq-server-error/method condition) cl-rabbit::amqp-channel-close-method))))
+        (fiveam:is (eql (cl-rabbit::rabbitmq-server-error/method condition) cl-rabbit::+amqp-channel-close-method+))))
     (channel-open conn 1)
     (let ((q (queue-declare conn 1 :exclusive t :auto-delete t)))
       (ensure-queue q))))
