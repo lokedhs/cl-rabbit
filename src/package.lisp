@@ -44,7 +44,6 @@
            #:basic-cancel
            #:rabbitmq-server-error/reply-code
            #:rabbitmq-server-error/message
-           #:rabbitmq-server-error/reply-code-name
            #:+amqp-reply-success+
            #:+amqp-content-too-large+
            #:+amqp-no-route+
