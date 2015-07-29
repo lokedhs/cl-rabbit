@@ -2,7 +2,7 @@
 
 (cffi:define-foreign-library librabbitmq
   (:darwin "librabbitmq.dylib")
-  (:unix "librabbitmq.so"))
+  (:unix "/usr/local/lib/librabbitmq.so"))
 
 (cffi:use-foreign-library librabbitmq)
 
