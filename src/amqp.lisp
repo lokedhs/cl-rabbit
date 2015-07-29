@@ -18,7 +18,7 @@
 
 (defun %check-client-version (name major minor patch)
   (multiple-value-bind (match strings)
-      (cl-ppcre:scan-to-strings "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$" name)
+      (cl-ppcre:scan-to-strings "^([0-9]+)\\.([0-9]+)\\.([0-9]+)(?:-pre)?$" name)
     (unless match
       (error "Version number reported from library has unexpected format: ~s" name))
     (let ((library-major (parse-integer (aref strings 0)))
