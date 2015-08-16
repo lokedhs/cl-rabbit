@@ -43,7 +43,26 @@
            #:rabbitmq-server-error/type
            #:basic-cancel
            #:rabbitmq-server-error/reply-code
-           #:rabbitmq-server-error/message))
+           #:rabbitmq-server-error/message
+           #:+amqp-reply-success+
+           #:+amqp-content-too-large+
+           #:+amqp-no-route+
+           #:+amqp-no-consumers+
+           #:+amqp-access-refused+
+           #:+amqp-not-found+
+           #:+amqp-resource-locked+
+           #:+amqp-precondition-failed+
+           #:+amqp-connection-forced+
+           #:+amqp-invalid-path+
+           #:+amqp-frame-error+
+           #:+amqp-syntax-error+
+           #:+amqp-command-invalid+
+           #:+amqp-channel-error+
+           #:+amqp-unexpected-frame+
+           #:+amqp-resource-error+
+           #:+amqp-not-allowed+
+           #:+amqp-not-implemented+
+           #:+amqp-internal-error+))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)

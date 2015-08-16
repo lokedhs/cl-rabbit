@@ -18,7 +18,7 @@
 
 (defun %check-client-version (name major minor patch)
   (multiple-value-bind (match strings)
-      (cl-ppcre:scan-to-strings "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$" name)
+      (cl-ppcre:scan-to-strings "^([0-9]+)\\.([0-9]+)\\.([0-9]+)(?:-[a-z]+)?$" name)
     (unless match
       (error "Version number reported from library has unexpected format: ~s" name))
     (let ((library-major (parse-integer (aref strings 0)))
@@ -57,6 +57,27 @@
                      (slot-value condition 'reply-code)
                      (slot-value condition 'message))))
   (:documentation "Error that is raised when the server reports an error condition"))
+
+(defun raise-rabbitmq-server-error (state channel result)
+  (let* ((reply (getf result 'reply))
+         (id (getf reply 'id))
+         (decoded (getf reply 'decoded)))
+
+    (cond ((eql id +amqp-channel-close-method+)
+           (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-code))
+                 (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-text))))
+             ;; Send an ack to the server to indicate that the close message was received
+             (if channel
+                 (confirm-channel-close state channel)
+                 (warn "Got channel close message and the channel value is not set"))
+             (error 'rabbitmq-server-error :method id :reply-code reply-code :message reply-text)))
+
+          ((eql id +amqp-connection-close-method+)
+           (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-code))
+                 (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-text))))
+             (error 'rabbitmq-server-error :method id :reply-code reply-code :message reply-text)))
+          (t
+           (error 'rabbitmq-server-error)))))
 
 (defclass connection ()
   ((conn     :type cffi:foreign-pointer
@@ -128,27 +149,6 @@
       (raise-rabbitmq-library-error status))
     type))
 
-(defun raise-rabbitmq-server-error (state channel result)
-  (let* ((reply (getf result 'reply))
-         (id (getf reply 'id))
-         (decoded (getf reply 'decoded)))
-
-    (cond ((eql id amqp-channel-close-method)
-           (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-code))
-                 (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-text))))
-             ;; Send an ack to the server to indicate that the close message was received
-             (if channel
-                 (confirm-channel-close state channel)
-                 (warn "Got channel close message and the channel value is not set"))
-             (error 'rabbitmq-server-error :method id :reply-code reply-code :message reply-text)))
-
-          ((eql id amqp-connection-close-method)
-           (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-code))
-                 (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-text))))
-             (error 'rabbitmq-server-error :method id :reply-code reply-code :message reply-text)))
-          (t
-           (error 'rabbitmq-server-error)))))
-
 (defun verify-rpc-reply (state channel result)
   (let ((reply-type (cffi:foreign-enum-keyword 'amqp-response-type-enum (getf result 'reply-type))))
     (case reply-type
@@ -195,7 +195,7 @@ CONN - the connection object
 CODE - the reason code for closing the connection. Defaults to AMQP_REPLY_SUCCESS."
   (check-type code (or null integer))
   (with-state (state conn)
-    (verify-rpc-framing-call state nil (amqp-connection-close state (or code amqp-reply-success)))))
+    (verify-rpc-framing-call state nil (amqp-connection-close state (or code +amqp-reply-success+)))))
 
 (defun socket-open (socket host port)
   "Open a socket connection.
@@ -292,24 +292,24 @@ CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
   (check-type code (or null integer))
   (with-state (state conn)
     (unwind-protect
-         (verify-rpc-reply state channel (amqp-channel-close state channel (or code amqp-reply-success)))
+         (verify-rpc-reply state channel (amqp-channel-close state channel (or code +amqp-reply-success+)))
       (maybe-release-buffers state))))
 
 (defparameter *props-mapping*
-  `((:content-type content-type :string string ,amqp-basic-content-type-flag)
-    (:content-encoding content-encoding :string string ,amqp-basic-content-encoding-flag)
-    (:delivery-mode delivery-mode :integer (unsigned-byte 8) ,amqp-basic-delivery-mode-flag)
-    (:priority priority :integer (unsigned-byte 8) ,amqp-basic-priority-flag)
-    (:correlation-id correlation-id :string string ,amqp-basic-correlation-id-flag)
-    (:reply-to reply-to :string string ,amqp-basic-reply-to-flag)
-    (:expiration expiration :string string ,amqp-basic-expiration-flag)
-    (:message-id message-id :string string ,amqp-basic-message-id-flag)
-    (:timestamp timestamp :integer (unsigned-byte 8) ,amqp-basic-timestamp-flag)
-    (:type type :string string ,amqp-basic-type-flag)
-    (:user-id user-id :string string ,amqp-basic-user-id-flag)
-    (:app-id app-id :string string ,amqp-basic-app-id-flag)
-    (:cluster-id cluster-id :string string ,amqp-basic-cluster-id-flag)
-    (:headers headers :table list ,amqp-basic-headers-flag)))
+  `((:content-type content-type :string string ,+amqp-basic-content-type-flag+)
+    (:content-encoding content-encoding :string string ,+amqp-basic-content-encoding-flag+)
+    (:delivery-mode delivery-mode :integer (unsigned-byte 8) ,+amqp-basic-delivery-mode-flag+)
+    (:priority priority :integer (unsigned-byte 8) ,+amqp-basic-priority-flag+)
+    (:correlation-id correlation-id :string string ,+amqp-basic-correlation-id-flag+)
+    (:reply-to reply-to :string string ,+amqp-basic-reply-to-flag+)
+    (:expiration expiration :string string ,+amqp-basic-expiration-flag+)
+    (:message-id message-id :string string ,+amqp-basic-message-id-flag+)
+    (:timestamp timestamp :integer (unsigned-byte 8) ,+amqp-basic-timestamp-flag+)
+    (:type type :string string ,+amqp-basic-type-flag+)
+    (:user-id user-id :string string ,+amqp-basic-user-id-flag+)
+    (:app-id app-id :string string ,+amqp-basic-app-id-flag+)
+    (:cluster-id cluster-id :string string ,+amqp-basic-cluster-id-flag+)
+    (:headers headers :table list ,+amqp-basic-headers-flag+)))
 
 (defun load-properties-to-alist (props)
   (loop
@@ -715,7 +715,7 @@ retrieved has been processed"
 (defun confirm-channel-close (state channel)
   (cffi:with-foreign-objects ((decoded '(:struct amqp-channel-close-ok-t)))
     (setf (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-ok-t) 'dummy) 0)
-    (amqp-send-method state channel amqp-channel-close-ok-method decoded)))
+    (amqp-send-method state channel +amqp-channel-close-ok-method+ decoded)))
 
 (defmacro with-connection ((conn) &body body)
   (let ((conn-sym (gensym "CONN-")))
