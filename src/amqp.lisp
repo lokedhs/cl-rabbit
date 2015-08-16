@@ -346,9 +346,7 @@ CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
                     do (setf flags (logior flags (fifth def)))
                     append (list (second def) (ecase (third def)
                                                 (:string (string-native value))
-                                                (:integer value)
-                                                ;; TODO: Table decode is not implemented
-                                                (:table nil))))))
+                                                (:integer value))))))
         (values (nconc (list 'flags flags) res)
                 allocated-values)))))
 
