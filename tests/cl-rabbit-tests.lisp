@@ -128,7 +128,8 @@
                      :exchange ex
                      :routing-key "foo"
                      :body "test"
-                     :properties `((:correlation-id . ,correlation-id)))
+                     :properties `((:correlation-id . ,correlation-id)
+                                   (:headers . (("header0" . "value0")))))
       (basic-consume conn 1 q)
       (let ((msg (consume-message conn :timeout 1)))
         (fiveam:is (not (null msg)))
