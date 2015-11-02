@@ -117,7 +117,7 @@
     (let ((q (queue-declare conn 1 :exclusive t :auto-delete t)))
       (ensure-queue q))))
 
-(fiveam:test message-properties-table-test
+#+nil(fiveam:test message-properties-table-test
   (with-rabbitmq-socket (conn)
     (let ((correlation-id "some-id")
           (ex "foo-ex")
