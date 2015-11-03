@@ -1,5 +1,7 @@
 (in-package :cl-rabbit)
 
+(declaim (optimize (debug 3) (safety 3) (speed 0)))
+
 (define-condition rabbitmq-error (error)
   ()
   (:documentation "General superclass for rabbitmq errors"))
@@ -323,7 +325,7 @@ CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
                        (:integer value)
                        (:table (amqp-table->lisp value)))))))
 
-(defun fill-in-properties-alist (properties)
+(defun fill-in-properties-alist (properties header-props)
   (let ((allocated-values nil)
         (flags 0))
     (labels ((string-native (string)
@@ -347,7 +349,11 @@ CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
                     append (list (second def) (ecase (third def)
                                                 (:string (string-native value))
                                                 (:integer value))))))
-        (values (nconc (list 'flags flags) res)
+        (values (if header-props
+                    (nconc (list 'flags (logior flags +amqp-basic-headers-flag+)
+                                 'headers header-props)
+                           res)
+                    (nconc (list 'flags flags) res))
                 allocated-values)))))
 
 (defun basic-ack (conn channel delivery-tag &key multiple)
@@ -420,7 +426,7 @@ then it will be encoded using ENCODING before sending.
 PROPERTIES - indicates an alist of message properties. The
 following property keywords are accepted:
 :CONTENT-TYPE :CONTENT-ENCODING :DELIVERY-MODE :PRIORITY :CORRELATION-ID 
-:REPLY-TO :EXPIRATION :MESSAGE-ID :TIMESTAMP :TYPE :USER-ID :APP-ID :CLUSTER-ID"
+:REPLY-TO :EXPIRATION :MESSAGE-ID :TIMESTAMP :TYPE :USER-ID :APP-ID :CLUSTER-ID :HEADERS"
   (check-type channel integer)
   (check-type exchange (or null string))
   (check-type routing-key (or null string))
@@ -434,17 +440,28 @@ following property keywords are accepted:
                                                          (if mandatory 1 0) (if immediate 1 0)
                                                          props data)))
 
-                    (send-with-data (data)
-                      (if properties
-                          (cffi:with-foreign-objects ((p '(:struct amqp-basic-properties-t)))
+                    (send-with-header-properties (data properties header-props)
+                      (cffi:with-foreign-objects ((p '(:struct amqp-basic-properties-t)))
                             (multiple-value-bind (props-list allocated)
-                                (fill-in-properties-alist properties)
+                                (fill-in-properties-alist properties header-props)
                               (unwind-protect
                                    (progn
                                      (setf (cffi:mem-ref p '(:struct amqp-basic-properties-t)) props-list)
                                      (send-with-properties data p))
                                 (dolist (ptr allocated)
-                                  (cffi:foreign-free ptr)))))
+                                  (cffi:foreign-free ptr))))))
+
+                    (send-with-data (data)
+                      (if properties
+                          (alexandria:if-let ((headers (find :headers properties :key #'car)))
+                            ;; The properties argument contains headers
+                            (call-with-amqp-table (lambda (table)
+                                                    (send-with-header-properties data
+                                                                                 (remove :headers properties :key #'car)
+                                                                                 table))
+                                                  (cdr headers))
+                            ;; ELSE: No headers, simply pass nil a nil headers structure
+                            (send-with-header-properties data properties nil))
                           ;; ELSE: No properties argument
                           (send-with-properties data (cffi:null-pointer)))))
 

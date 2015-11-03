@@ -117,9 +117,10 @@
     (let ((q (queue-declare conn 1 :exclusive t :auto-delete t)))
       (ensure-queue q))))
 
-#+nil(fiveam:test message-properties-table-test
+(fiveam:test message-properties-table-test
   (with-rabbitmq-socket (conn)
     (let ((correlation-id "some-id")
+          (send-hdr '(("header0" . "value0") ("header1" . 9)))
           (ex "foo-ex")
           (q (queue-declare conn 1 :exclusive t :auto-delete t)))
       (exchange-declare conn 1 ex "topic" :durable t)
@@ -129,7 +130,7 @@
                      :routing-key "foo"
                      :body "test"
                      :properties `((:correlation-id . ,correlation-id)
-                                   (:headers . (("header0" . "value0")))))
+                                   (:headers . ,send-hdr)))
       (basic-consume conn 1 q)
       (let ((msg (consume-message conn :timeout 1)))
         (fiveam:is (not (null msg)))
@@ -137,4 +138,15 @@
           (let ((received-id (assoc :correlation-id properties)))
             (fiveam:is (consp received-id))
             (let ((id-string (cdr received-id)))
-              (fiveam:is (equal correlation-id id-string)))))))))
+              (fiveam:is (equal correlation-id id-string))))
+          (let ((headers (assoc :headers properties)))
+            (fiveam:is (consp headers))
+            (let ((header-val (cdr headers)))
+              (fiveam:is (eql (length send-hdr) (length header-val)))
+              (loop
+                 for (rec-h . rec-v) in header-val
+                 for (snd-h . snd-v) in send-hdr
+                 do (fiveam:is (equal snd-h rec-h))
+                 do (etypecase snd-v
+                      (integer (fiveam:is (eql snd-v rec-v)))
+                      (string (fiveam:is (equal snd-v (babel:octets-to-string rec-v :encoding :utf-8)))))))))))))
