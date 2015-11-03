@@ -155,7 +155,8 @@
              (make-field-value (value)
                (etypecase value
                  (string (typed-value :amqp-field-kind-bytes (string-native value)))
-                 ((integer #.(- (expt 2 31)) #.(1- (expt 2 31))) (typed-value :amqp-field-kind-i32 value)))))
+                 ((integer #.(- (expt 2 31)) #.(1- (expt 2 31))) (typed-value :amqp-field-kind-i32 value))
+                 ((integer #.(- (expt 2 63)) #.(1- (expt 2 63))) (typed-value :amqp-field-kind-i64 value)))))
 
       (unwind-protect
            (cffi:with-foreign-objects ((content '(:struct amqp-table-entry-t) length))
