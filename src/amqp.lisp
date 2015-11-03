@@ -325,36 +325,37 @@ CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
                        (:integer value)
                        (:table (amqp-table->lisp value)))))))
 
-(defun fill-in-properties-alist (properties header-props)
+(defun fill-in-properties-alist (properties)
   (let ((allocated-values nil)
         (flags 0))
-    (labels ((string-native (string)
-               (let* ((utf (babel:string-to-octets string :encoding :utf-8))
-                      (ptr (array-to-foreign-char-array utf)))
-                 (push ptr allocated-values)
-                 (list 'len (array-dimension utf 0) 'bytes ptr)))
-             (free-and-raise-error (fmt &rest params)
-               (dolist (ptr allocated-values)
-                 (cffi:foreign-free ptr))
-               (apply #'error fmt params)))
-      (let ((res (loop
-                    for (key . value) in properties
-                    for def = (find key *props-mapping* :key #'first)
-                    unless def
-                    do (free-and-raise-error "Unknown property in alist: ~s" key)
-                    unless (typep value (fourth def))
-                    do (free-and-raise-error "Illegal type for ~s: ~s. Expected: ~s"
-                                             (first def) (type-of value) (fourth def))
-                    do (setf flags (logior flags (fifth def)))
-                    append (list (second def) (ecase (third def)
-                                                (:string (string-native value))
-                                                (:integer value))))))
-        (values (if header-props
-                    (nconc (list 'flags (logior flags +amqp-basic-headers-flag+)
-                                 'headers header-props)
-                           res)
-                    (nconc (list 'flags flags) res))
-                allocated-values)))))
+    (unwind-when-fail
+        (labels ((string-native (string)
+                   (let* ((utf (babel:string-to-octets string :encoding :utf-8))
+                          (ptr (array-to-foreign-char-array utf)))
+                     (push ptr allocated-values)
+                     (list 'len (array-dimension utf 0) 'bytes ptr))))
+
+          (let ((res (loop
+                        for (key . value) in properties
+                        for def = (find key *props-mapping* :key #'first)
+                        unless def
+                        do (error "Unknown property in alist: ~s" key)
+                        unless (typep value (fourth def))
+                        do (error "Illegal type for ~s: ~s. Expected: ~s" (first def) (type-of value) (fourth def))
+                        do (setf flags (logior flags (fifth def)))
+                        append (list (second def) (ecase (third def)
+                                                    (:string (string-native value))
+                                                    (:integer value)
+                                                    (:table (multiple-value-bind (table native-values)
+                                                                (allocate-amqp-table value)
+                                                              (dolist (v native-values)
+                                                                (push v allocated-values))
+                                                              table)))))))
+            (values (nconc (list 'flags flags) res)
+                    allocated-values)))
+      ;; Unwind form (only when an error was thrown)
+      (dolist (ptr allocated-values)
+        (cffi:foreign-free ptr)))))
 
 (defun basic-ack (conn channel delivery-tag &key multiple)
   "Acknowledges a message.
@@ -440,28 +441,17 @@ following property keywords are accepted:
                                                          (if mandatory 1 0) (if immediate 1 0)
                                                          props data)))
 
-                    (send-with-header-properties (data properties header-props)
-                      (cffi:with-foreign-objects ((p '(:struct amqp-basic-properties-t)))
+                    (send-with-data (data)
+                      (if properties
+                          (cffi:with-foreign-objects ((p '(:struct amqp-basic-properties-t)))
                             (multiple-value-bind (props-list allocated)
-                                (fill-in-properties-alist properties header-props)
+                                (fill-in-properties-alist properties)
                               (unwind-protect
                                    (progn
                                      (setf (cffi:mem-ref p '(:struct amqp-basic-properties-t)) props-list)
                                      (send-with-properties data p))
                                 (dolist (ptr allocated)
-                                  (cffi:foreign-free ptr))))))
-
-                    (send-with-data (data)
-                      (if properties
-                          (alexandria:if-let ((headers (find :headers properties :key #'car)))
-                            ;; The properties argument contains headers
-                            (call-with-amqp-table (lambda (table)
-                                                    (send-with-header-properties data
-                                                                                 (remove :headers properties :key #'car)
-                                                                                 table))
-                                                  (cdr headers))
-                            ;; ELSE: No headers, simply pass nil a nil headers structure
-                            (send-with-header-properties data properties nil))
+                                  (cffi:foreign-free ptr)))))
                           ;; ELSE: No properties argument
                           (send-with-properties data (cffi:null-pointer)))))
 

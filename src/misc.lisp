@@ -2,6 +2,17 @@
 
 (declaim (optimize (speed 0) (safety 3) (debug 3)))
 
+(defmacro unwind-when-fail (form &body unwind-forms)
+  (let ((flag-sym (gensym "SUCCESS-"))
+        (result-sym (gensym "RESULT-")))
+    `(let ((,flag-sym nil))
+       (unwind-protect
+            (let ((,result-sym ,form))
+              (setq ,flag-sym t)
+              ,result-sym)
+         (unless ,flag-sym
+           ,@unwind-forms)))))
+
 (defun convert-to-bytes (array)
   (labels ((mk-byte8 (a)
              (let ((result (make-array (length a) :element-type '(unsigned-byte 8))))
@@ -136,7 +147,7 @@
       (:amqp-field-kind-bytes (bytes->array (getf value 'value-bytes)))
       (:amqp-field-kind-void nil))))
 
-(defun call-with-amqp-table (fn values)
+(defun allocate-amqp-table (values)
   (let ((length (length values))
         (allocated-values nil))
 
@@ -158,19 +169,28 @@
                  ((integer #.(- (expt 2 31)) #.(1- (expt 2 31))) (typed-value :amqp-field-kind-i32 value))
                  ((integer #.(- (expt 2 63)) #.(1- (expt 2 63))) (typed-value :amqp-field-kind-i64 value)))))
 
-      (unwind-protect
-           (cffi:with-foreign-objects ((content '(:struct amqp-table-entry-t) length))
-             (loop
-                for (key . value) in values
-                for i from 0
-                do (setf (cffi:mem-aref content '(:struct amqp-table-entry-t) i)
-                         (list 'key (string-native key) 'value (make-field-value value))))
-             (let ((content-struct (list 'num-entries length 'entries content)))
-               (funcall fn content-struct)))
+      (unwind-when-fail
+          (let ((content (cffi:foreign-alloc '(:struct amqp-table-entry-t) :count length)))
+            (push content allocated-values)
+            (loop
+               for (key . value) in values
+               for i from 0
+               do (setf (cffi:mem-aref content '(:struct amqp-table-entry-t) i)
+                        (list 'key (string-native key) 'value (make-field-value value))))
+            (let ((content-struct (list 'num-entries length 'entries content)))
+              (values content-struct allocated-values)))
 
         ;; Unwind form
         (dolist (ptr allocated-values)
           (cffi:foreign-free ptr))))))
+
+(defun call-with-amqp-table (fn values)
+  (multiple-value-bind (table allocated-values)
+      (allocate-amqp-table values)
+    (unwind-protect
+         (funcall fn table)
+      (dolist (ptr allocated-values)
+        (cffi:foreign-free ptr)))))
 
 (defmacro with-amqp-table ((table values) &body body)
   (alexandria:with-gensyms (values-sym fn)
