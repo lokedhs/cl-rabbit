@@ -118,7 +118,7 @@
     (:amqp-field-kind-f32 . value-f32)
     (:amqp-field-kind-f64 . value-f64)
     (:amqp-field-kind-decimal . value-decimal)
-    (:amqp-field-kind-utf8 . value-utf8)
+    (:amqp-field-kind-utf8 . value-bytes)
     (:amqp-field-kind-array . value-array)
     (:amqp-field-kind-timestamp . value-timestamp)
     (:amqp-field-kind-table . value-table)
@@ -141,7 +141,7 @@
       (:amqp-field-kind-u64 (getf value 'value-u64))
       (:amqp-field-kind-f32 (getf value 'value-f32))
       (:amqp-field-kind-f64 (getf value 'value-f64))
-      (:amqp-field-kind-utf-8 (bytes->string (getf value 'value-utf8)))
+      (:amqp-field-kind-utf-8 (bytes->string (getf value 'value-bytes)))
       (:amqp-field-kind-bytes (bytes->array (getf value 'value-bytes)))
       (:amqp-field-kind-void nil))))
 
