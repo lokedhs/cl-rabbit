@@ -1,5 +1,7 @@
 (in-package :cl-rabbit)
 
+(declaim (optimize (speed 0) (safety 3) (debug 3)))
+
 (define-condition rabbitmq-error (error)
   ()
   (:documentation "General superclass for rabbitmq errors"))

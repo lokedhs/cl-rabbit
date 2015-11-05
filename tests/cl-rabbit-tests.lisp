@@ -117,10 +117,55 @@
     (let ((q (queue-declare conn 1 :exclusive t :auto-delete t)))
       (ensure-queue q))))
 
+(defun table-equal-p (v1 v2)
+  (labels ((valid-byte-value-p (v)
+             (and (integerp v) (<= 0 v 255)))
+           (check-valid-values (v)
+             (loop
+                for m across v
+                unless (valid-byte-value-p m)
+                do (error "Unexpected value in array: ~s" m))))
+    (etypecase v1
+      (string (equal v1 v2))
+      (array (check-valid-values v1)
+             (and (arrayp v2)
+                  (= (array-rank v1) 1)
+                  (= (array-rank v2) 1)
+                  (= (length v1) (length v2))
+                  (loop
+                     for m0 across v1
+                     for m1 across v2
+                     unless (eql m0 m1)
+                     return nil
+                     finally (return t))))
+      (integer (eql v1 v2))
+      (float (< (abs (- v1 v2))
+                ;; Epsilon for Standard 64-bit floating point numbers is 1.40129846d-45
+                1d-44))
+      (null (null v2))
+      (list (unless (and (every #'stringp (mapcar #'car v1))
+                         (every #'stringp (mapcar #'car v2)))
+              (error "Keys in headers should be strings"))
+            (and (= (length v1) (length v2))
+                 (loop
+                    for (snd-h . snd-v) in (sort v1 #'string< :key #'car)
+                    for (rec-h . rec-v) in (sort v2 #'string< :key #'car)
+                    unless (and (equal snd-h rec-h)
+                                (table-equal-p snd-v rec-v))
+                    return nil
+                    finally (return t)))))))
+
 (fiveam:test message-properties-table-test
   (with-rabbitmq-socket (conn)
     (let ((correlation-id "some-id")
-          (send-hdr '(("header0" . "value0") ("header1" . 9)))
+          (send-hdr '(("header0" . "value0")
+                      ("header1" . 9)
+                      ("header2" . #(1 2 3 4 5 6))
+                      ("header3" . 1.2d0)
+                      #+nil("header4" . (("inner-header0" . "foo")
+                                         ("inner-header1" . 91)
+                                         ("inner-header2" . #(9 8 7 6))))
+                      ("header5" . #.(expt 2 60))))
           (ex "foo-ex")
           (q (queue-declare conn 1 :exclusive t :auto-delete t)))
       (exchange-declare conn 1 ex "topic" :durable t)
@@ -141,12 +186,4 @@
               (fiveam:is (equal correlation-id id-string))))
           (let ((headers (assoc :headers properties)))
             (fiveam:is (consp headers))
-            (let ((header-val (cdr headers)))
-              (fiveam:is (eql (length send-hdr) (length header-val)))
-              (loop
-                 for (rec-h . rec-v) in header-val
-                 for (snd-h . snd-v) in send-hdr
-                 do (fiveam:is (equal snd-h rec-h))
-                 do (etypecase snd-v
-                      (integer (fiveam:is (eql snd-v rec-v)))
-                      (string (fiveam:is (equal snd-v (babel:octets-to-string rec-v :encoding :utf-8)))))))))))))
+            (fiveam:is (table-equal-p send-hdr (cdr headers)))))))))

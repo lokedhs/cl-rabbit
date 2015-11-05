@@ -1,13 +1,15 @@
 (in-package :cl-rabbit)
 
+(declaim (optimize (speed 0) (safety 3) (debug 3)))
+
 (defmacro unwind-when-fail (form &body unwind-forms)
   (let ((flag-sym (gensym "SUCCESS-"))
         (result-sym (gensym "RESULT-")))
     `(let ((,flag-sym nil))
        (unwind-protect
-            (let ((,result-sym ,form))
+            (let ((,result-sym (multiple-value-list ,form)))
               (setq ,flag-sym t)
-              ,result-sym)
+              (apply #'values ,result-sym))
          (unless ,flag-sym
            ,@unwind-forms)))))
 
@@ -141,19 +143,23 @@
       (:amqp-field-kind-u64 (getf value 'value-u64))
       (:amqp-field-kind-f32 (getf value 'value-f32))
       (:amqp-field-kind-f64 (getf value 'value-f64))
-      (:amqp-field-kind-utf-8 (bytes->string (getf value 'value-bytes)))
+      (:amqp-field-kind-utf8 (bytes->string (getf value 'value-bytes)))
       (:amqp-field-kind-bytes (bytes->array (getf value 'value-bytes)))
-      (:amqp-field-kind-void nil))))
+      (:amqp-field-kind-void nil)
+      (:amqp-field-kind-table (amqp-table->lisp value)))))
 
 (defun allocate-amqp-table (values)
   (let ((length (length values))
         (allocated-values nil))
 
-    (labels ((string-native (string)
-               (let* ((utf (babel:string-to-octets string :encoding :utf-8))
-                      (ptr (array-to-foreign-char-array utf)))
+    (labels ((array-native (array)
+               (let ((ptr (array-to-foreign-char-array array)))
                  (push ptr allocated-values)
-                 (list 'len (array-dimension utf 0) 'bytes ptr)))
+                 (list 'len (array-dimension array 0) 'bytes ptr)))
+
+             (string-native (string)
+               (let ((utf (babel:string-to-octets string :encoding :utf-8)))
+                 (array-native utf)))
 
              (typed-value (type value)
                (let ((struct-entry-name (cdr (assoc type *field-kind-types*))))
@@ -163,9 +169,16 @@
 
              (make-field-value (value)
                (etypecase value
-                 (string (typed-value :amqp-field-kind-bytes (string-native value)))
+                 (string (typed-value :amqp-field-kind-utf8 (string-native value)))
+                 (array (typed-value :amqp-field-kind-bytes (array-native value)))
                  ((integer #.(- (expt 2 31)) #.(1- (expt 2 31))) (typed-value :amqp-field-kind-i32 value))
-                 ((integer #.(- (expt 2 63)) #.(1- (expt 2 63))) (typed-value :amqp-field-kind-i64 value)))))
+                 ((integer #.(- (expt 2 63)) #.(1- (expt 2 63))) (typed-value :amqp-field-kind-i64 value))
+                 (float (typed-value :amqp-field-kind-f64 value))
+                 #+nil(list (multiple-value-bind (table allocated)
+                                (allocate-amqp-table value)
+                              (dolist (a allocated)
+                                (push a allocated-values))
+                              (typed-value :amqp-field-kind-table table))))))
 
       (unwind-when-fail
           (let ((content (cffi:foreign-alloc '(:struct amqp-table-entry-t) :count length)))
