@@ -600,7 +600,7 @@ subscription queues are bound to a topic exchange."
   (with-state (state conn)
     (unwind-protect
          (with-bytes-strings ((queue-bytes queue))
-           (amqp-queue-purge state channel queue-bytes))
+           (verify-rpc-framing-call conn channel (amqp-queue-purge state channel queue-bytes)))
       (maybe-release-buffers state))))
 
 (defun queue-delete (conn channel queue &key if-unused if-empty)
