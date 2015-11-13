@@ -10,6 +10,8 @@
        do (write-char (code-char (+ (random (1+ (- (char-code #\z) (char-code #\a)))) (char-code #\a))) s))))
 
 (defmacro with-rabbitmq-socket ((conn &optional socket) &body body)
+  (check-type conn symbol)
+  (check-type socket (or null symbol))
   (let ((socket-sym (gensym "SOCKET-")))
     `(with-connection (,conn)
        (let ((,socket-sym (tcp-socket-new ,conn)))
