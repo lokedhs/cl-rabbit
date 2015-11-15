@@ -189,3 +189,31 @@
           (let ((headers (assoc :headers properties)))
             (fiveam:is (consp headers))
             (fiveam:is (table-equal-p send-hdr (cdr headers)))))))))
+
+(fiveam:test commit-transaction-test
+  (with-rabbitmq-socket (conn)
+    ;; Open two channels and declare an exchange and a queue that
+    ;; channel is listening on. Channel 2 sends a transacted message,
+    ;; and the test verifies that the message is not delivered until
+    ;; the transaction is committed.
+    (let ((e "txtest-ex")
+          (q "txtest")
+          (content "test content"))
+      (channel-open conn 2)
+      (exchange-declare conn 1 e "topic")
+      (queue-declare conn 1 :queue q :auto-delete t)
+      (queue-bind conn 1 :queue "txtest" :exchange e :routing-key "#")
+      (basic-consume conn 1 q :no-ack t)
+      ;; Activate transactions on channel 2
+      (tx-select conn 2)
+      (basic-publish conn 2 :exchange e :routing-key "x" :body content)
+      (handler-case
+          (progn
+            (consume-message conn :timeout 500000)
+            (fiveam:is-false t))
+        (rabbitmq-library-error (condition)
+          (fiveam:is (eq :amqp-status-timeout (rabbitmq-library-error/error-code condition)))))
+      (tx-commit conn 2)
+      (let* ((msg (consume-message conn :timeout 500000))
+             (recv-text (babel:octets-to-string (message/body (envelope/message msg)))))
+        (fiveam:is (equal content recv-text))))))
