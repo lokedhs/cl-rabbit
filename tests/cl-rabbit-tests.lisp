@@ -206,6 +206,8 @@
       (basic-consume conn 1 q :no-ack t)
       ;; Activate transactions on channel 2
       (tx-select conn 2)
+      (basic-publish conn 2 :exchange e :routing-key "x" :body "rollback message")
+      (tx-rollback conn 2)
       (basic-publish conn 2 :exchange e :routing-key "x" :body content)
       (handler-case
           (progn
