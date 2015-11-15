@@ -164,6 +164,20 @@
 (defun maybe-release-buffers (state)
   (amqp-maybe-release-buffers state))
 
+
+(defun confirm-channel-close (state channel)
+  (cffi:with-foreign-objects ((decoded '(:struct amqp-channel-close-ok-t)))
+    (setf (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-ok-t) 'dummy) 0)
+    (amqp-send-method state channel +amqp-channel-close-ok-method+ decoded)))
+
+(defmacro with-connection ((conn) &body body)
+  (let ((conn-sym (gensym "CONN-")))
+    `(let ((,conn-sym (new-connection)))
+       (unwind-protect
+            (let ((,conn ,conn-sym))
+              ,@body)
+         (destroy-connection ,conn-sym)))))
+
 ;;;
 ;;;  API calls
 ;;;
@@ -715,18 +729,26 @@ retrieved has been processed"
   (with-state (state conn)
     (amqp-get-sockfd state)))
 
-(defun confirm-channel-close (state channel)
-  (cffi:with-foreign-objects ((decoded '(:struct amqp-channel-close-ok-t)))
-    (setf (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-ok-t) 'dummy) 0)
-    (amqp-send-method state channel +amqp-channel-close-ok-method+ decoded)))
-
-(defmacro with-connection ((conn) &body body)
-  (let ((conn-sym (gensym "CONN-")))
-    `(let ((,conn-sym (new-connection)))
-       (unwind-protect
-            (let ((,conn ,conn-sym))
-              ,@body)
-         (destroy-connection ,conn-sym)))))
-
 (defun version ()
   (amqp-version))
+
+(defun tx-select (conn channel)
+  (check-type channel integer)
+  (with-state (state conn)
+    (unwind-protect
+         (verify-rpc-framing-call state channel (amqp-tx-select state channel))
+      (maybe-release-buffers state))))
+
+(defun tx-commit (conn channel)
+  (check-type channel integer)
+  (with-state (state conn)
+    (unwind-protect
+         (verify-rpc-framing-call state channel (amqp-tx-commit state channel))
+      (maybe-release-buffers state))))
+
+(defun tx-rollback (conn channel)
+  (check-type channel integer)
+  (with-state (state conn)
+    (unwind-protect
+         (verify-rpc-framing-call state channel (amqp-tx-rollback state channel))
+      (maybe-release-buffers state))))

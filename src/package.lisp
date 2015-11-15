@@ -62,7 +62,10 @@
            #:+amqp-resource-error+
            #:+amqp-not-allowed+
            #:+amqp-not-implemented+
-           #:+amqp-internal-error+))
+           #:+amqp-internal-error+
+           #:tx-select
+           #:tx-commit
+           #:tx-rollback))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)
