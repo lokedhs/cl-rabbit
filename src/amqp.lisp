@@ -662,7 +662,7 @@ Parameters:
 CONN - the connection object
 
 TIMEOUT - the number of microseconds to wait for a message delivery.
-Passing in NIL will result in blocking behavior."
+Passing in NIL will result in blocking behaviour."
   (check-type timeout (or null integer))
   (with-state (state conn)
     (unwind-protect
