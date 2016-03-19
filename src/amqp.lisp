@@ -252,8 +252,7 @@ Note that the maximum number of channels the protocol supports is
 
 FRAME-MAX - the maximum size of an AMQP frame on the wire to request
 of the broker for this connection. 4096 is the minimum size, 2^31-1 is
-the maximum, a good default is 131072 (128 kB), or
-AMQP_DEFAULT_FRAME_SIZE
+the maximum, the default value is 131072 (128 kB).
 
 HEARTBEAT - the number of seconds between heartbeat frame to request
 of the broker. A value of 0 disables heartbeats.
