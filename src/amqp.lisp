@@ -256,10 +256,7 @@ the maximum, a good default is 131072 (128 kB), or
 AMQP_DEFAULT_FRAME_SIZE
 
 HEARTBEAT - the number of seconds between heartbeat frame to request
-of the broker. A value of 0 disables heartbeats. Note rabbitmq-c only
-has partial support for hearts, as of v0.4.0 heartbeats are only
-serviced during BASIC-PUBLISH, SIMPLE-WAIT-FRAME and
-SIMPLE-WAIT-FRAME-NOBLOCK.
+of the broker. A value of 0 disables heartbeats.
 
 PROPERTIES - a table of properties to send to the broker"
   (check-type vhost string)
