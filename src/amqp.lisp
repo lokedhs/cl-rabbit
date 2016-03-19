@@ -171,6 +171,8 @@
     (amqp-send-method state channel +amqp-channel-close-ok-method+ decoded)))
 
 (defmacro with-connection ((conn) &body body)
+  "Creates a connection using NEW-CONNECTION and evaluates BODY with
+the connection bound to CONN."
   (let ((conn-sym (gensym "CONN-")))
     `(let ((,conn-sym (new-connection)))
        (unwind-protect
@@ -183,10 +185,14 @@
 ;;;
 
 (defun new-connection ()
+  "Create a new connection. The returned connection must be released
+using DESTROY-CONNECTION. As an alternative, WITH-CONNECTION can be
+used, which ensures that the connection is properly closed."
   (let ((result (fail-if-null (amqp-new-connection))))
     (make-instance 'connection :conn result)))
 
 (defun destroy-connection (conn)
+  "Close a connection that was previously createed using NEW-CONNECTION."
   (unless (connection/closed-p conn)
     (with-state (state conn)
       (verify-status (amqp-destroy-connection state)))
