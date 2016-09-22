@@ -76,6 +76,7 @@
            (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-code))
                  (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-text))))
              (error 'rabbitmq-server-error :method id :reply-code reply-code :message reply-text)))
+
           (t
            (error 'rabbitmq-server-error)))))
 
