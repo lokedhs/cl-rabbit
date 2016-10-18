@@ -67,7 +67,11 @@
            #:tx-commit
            #:tx-rollback
            #:ssl-socket-new
-           #:ssl-socket-set-cacert))
+           #:ssl-socket-set-cacert
+           #:ssl-socket-set-verify
+           #:ssl-socket-set-key-buffer
+           #:set-init-ssl-library
+           #:ssl-socket-set-key))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)

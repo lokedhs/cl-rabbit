@@ -44,6 +44,23 @@
   (socket amqp-socket-t-ptr)
   (cacert (:pointer :char)))
 
+(cffi:defcfun ("amqp_ssl_socket_set_key" amqp-ssl-socket-set-key) :int
+  (socket amqp-socket-t-ptr)
+  (cert (:pointer :char))
+  (key (:pointer :char)))
+
+(cffi:defcfun ("amqp_ssl_socket_set_key_buffer" amqp-ssl-socket-set-key-buffer) :int
+  (socket amqp-socket-t-ptr)
+  (cert (:pointer :char))
+  (key :pointer))
+
+(cffi:defcfun ("amqp_ssl_socket_set_verify" amqp-ssl-socket-set-verify) :void
+  (socket amqp-socket-t-ptr)
+  (verify amqp-boolean-t))
+
+(cffi:defcfun ("amqp_set_initialize_ssl_library" amqp-set-initialize-ssl-library) :void
+  (init amqp-boolean-t))
+
 (cffi:defcfun ("amqp_tcp_socket_set_sockfd" amqp-tcp-socket-set-sockfd) :void
   (self amqp-socket-t-ptr)
   (sockfd :int))

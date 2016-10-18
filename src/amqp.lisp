@@ -221,6 +221,69 @@ CACERT is the path to a certificate file in PEM format."
   (cffi:with-foreign-string (s (namestring cacert))
     (verify-status (amqp-ssl-socket-set-cacert socket s))))
 
+(defun ssl-socket-set-key (socket cert key)
+  "Set the client key from a buffer.
+
+SOCKET - An SSL/TLS socket object.
+CERT - Path to the client certificate in PEM format.
+KEY - Path to the client key in PEM format."
+  (check-type cert (or string pathname))
+  (check-type key (or string pathname))
+  (unless (probe-file cert)
+    (error "Certificate file not found: ~s" cert))
+  (unless (probe-file key)
+    (error "Key file not found: ~s" key))
+  (cffi:with-foreign-strings ((cert-buffer cert)
+                              (key-buffer key))
+    (verify-status (amqp-ssl-socket-set-key socket cert-buffer key-buffer))))
+
+(defun ssl-socket-set-key-buffer (socket cert key)
+  "Set the client key from a buffer.
+
+SOCKET - An SSL/TLS socket object.
+CERT - Path to the client certificate in PEM format.
+KEY - An array of type (UNSIGNED-BYTE 8) containing client key in PEM format."
+  (check-type cert (or string pathname))
+  (check-type key (array (unsigned-byte 8)))
+  (unless (probe-file cert)
+    (error "Certificate file not found: ~s" cert))
+  (cffi:with-foreign-string (s (namestring cert))
+    (with-foreign-buffer-from-byte-array (key-array key)
+      (verify-status (amqp-ssl-socket-set-key-buffer socket s key-array)))))
+
+(defun ssl-socket-set-verify (socket verify-p)
+  "Enable or disable peer verification.
+
+If peer verification is enabled then the common name in the server
+certificate must match the server name. Peer verification is enabled
+by default.
+
+SOCKET - An SSL/TLS socket object.
+VERIFY-P - verify Enable or disable peer verification."
+  (verify-status (amqp-ssl-socket-set-verify socket (if verify-p 1 0))))
+
+(defun set-init-ssl-library (init-p)
+  "Sets whether rabbitmq-c initialises the underlying SSL library.
+
+For SSL libraries that require a one-time initialisation across
+a whole program (e.g., OpenSSL) this sets whether or not rabbitmq-c
+will initialise the SSL library when the first call to
+amqp_open_socket() is made. You should call this function with
+do_init = 0 if the underlying SSL library is initialised somewhere else
+the program.
+
+Failing to initialise or double initialisation of the SSL library will
+result in undefined behaviour
+
+By default rabbitmq-c will initialise the underlying SSL library
+
+NOTE: calling this function after the first socket has been opened with
+amqp_open_socket() will not have any effect.
+
+INIT - If NIL rabbitmq-c will not initialise the SSL library,
+       otherwise rabbitmq-c will initialise the SSL library"
+  (amqp-set-initialize-ssl-library (if init 1 0)))
+
 (defun connection-close (conn &key code)
   "Closes the entire connection.
 Implicitly closes all channels and informs the broker the connection
