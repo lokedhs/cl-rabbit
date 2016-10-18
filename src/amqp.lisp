@@ -205,6 +205,22 @@ Call CONNECTION-CLOSE to release socket resources."
   (with-state (state conn)
     (fail-if-null (amqp-tcp-socket-new state))))
 
+(defun ssl-socket-new (conn)
+  "Create a new TLS-encrypted socket.
+Call CONNECTION-CLOSE to release socket resources."
+  (with-state (state conn)
+    (fail-if-null (amqp-ssl-socket-new state))))
+
+(defun ssl-socket-set-cacert (socket cacert)
+  "Set the CA certificate.
+SOCKET is a socket object created by SSL-SOCKET-NEW.
+CACERT is the path to a certificate file in PEM format."
+  (check-type cacert (or string pathname))
+  (unless (probe-file cacert)
+    (error "Certificate file not found: ~s" cacert))
+  (cffi:with-foreign-string (s (namestring cacert))
+    (verify-status (amqp-ssl-socket-set-cacert socket s))))
+
 (defun connection-close (conn &key code)
   "Closes the entire connection.
 Implicitly closes all channels and informs the broker the connection

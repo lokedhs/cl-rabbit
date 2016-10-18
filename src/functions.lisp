@@ -37,6 +37,13 @@
 (cffi:defcfun ("amqp_tcp_socket_new" amqp-tcp-socket-new) amqp-socket-t-ptr
   (state amqp-connection-state-t))
 
+(cffi:defcfun ("amqp_ssl_socket_new" amqp-ssl-socket-new) amqp-socket-t-ptr
+  (state amqp-connection-state-t))
+
+(cffi:defcfun ("amqp_ssl_socket_set_cacert" amqp-ssl-socket-set-cacert) :int
+  (socket amqp-socket-t-ptr)
+  (cacert (:pointer :char)))
+
 (cffi:defcfun ("amqp_tcp_socket_set_sockfd" amqp-tcp-socket-set-sockfd) :void
   (self amqp-socket-t-ptr)
   (sockfd :int))

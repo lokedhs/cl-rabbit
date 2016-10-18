@@ -65,7 +65,9 @@
            #:+amqp-internal-error+
            #:tx-select
            #:tx-commit
-           #:tx-rollback))
+           #:tx-rollback
+           #:ssl-socket-new
+           #:ssl-socket-set-cacert))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)
