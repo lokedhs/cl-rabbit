@@ -31,6 +31,6 @@
 
 (defun test-recv-in-thread ()
   (let ((out *standard-output*))
-    (bordeaux-threads:make-thread #'(lambda ()
-                                      (let ((*standard-output* out))
-                                        (test-recv))))))
+    (bordeaux-threads:make-thread (lambda ()
+                                    (let ((*standard-output* out))
+                                      (test-recv))))))
