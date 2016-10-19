@@ -233,8 +233,8 @@ KEY - Path to the client key in PEM format."
     (error "Certificate file not found: ~s" cert))
   (unless (probe-file key)
     (error "Key file not found: ~s" key))
-  (cffi:with-foreign-strings ((cert-buffer cert)
-                              (key-buffer key))
+  (cffi:with-foreign-strings ((cert-buffer (namestring cert))
+                              (key-buffer (namestring key)))
     (verify-status (amqp-ssl-socket-set-key socket cert-buffer key-buffer))))
 
 (defun ssl-socket-set-key-buffer (socket cert key)
