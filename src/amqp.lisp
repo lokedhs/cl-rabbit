@@ -488,6 +488,13 @@ REQUEUE - indicate to the broker whether it should requeue the message"
          (verify-status (amqp-basic-nack state channel delivery-tag (if multiple 1 0) (if requeue 1 0)))
       (maybe-release-buffers state))))
 
+(defun basic-qos (conn channel prefetch-size prefetch-count &key (global nil))
+  (check-type channel integer)
+  (with-state (state conn)
+    (unwind-protect
+         (verify-rpc-framing-call state channel (amqp-basic-qos state channel prefetch-size prefetch-count global))
+      (maybe-release-buffers state))))
+
 (defun basic-publish (conn channel &key
                                      exchange routing-key mandatory immediate properties
                                      body (encoding :utf-8))

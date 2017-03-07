@@ -292,3 +292,10 @@
   (channel amqp-channel-t)
   (id amqp-method-number-t)
   (decoded :pointer))
+
+(cffi:defcfun ("amqp_basic_qos" amqp-basic-qos) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (prefetch-size uint32-t)
+  (prefetch-count uint64-t)
+  (global :boolean))
