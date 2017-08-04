@@ -5,6 +5,8 @@
   (include "time.h")
   (include "sys/time.h"))
 
+(cc-flags #+freebsd "-I/usr/local/include")
+
 (include "amqp.h")
 (include "amqp_framing.h")
 (include "amqp_tcp_socket.h")
