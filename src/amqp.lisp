@@ -193,7 +193,7 @@ used, which ensures that the connection is properly closed."
     (make-instance 'connection :conn result)))
 
 (defun destroy-connection (conn)
-  "Close a connection that was previously createed using NEW-CONNECTION."
+  "Close a connection that was previously created using NEW-CONNECTION."
   (unless (connection/closed-p conn)
     (with-state (state conn)
       (verify-status (amqp-destroy-connection state)))
