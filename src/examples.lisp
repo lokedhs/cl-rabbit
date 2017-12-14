@@ -20,6 +20,7 @@
       (channel-open conn 1)
       (exchange-declare conn 1 "test-ex" "topic")
       (let ((queue-name "foo"))
+        (queue-declare conn 1 :queue queue-name)
         (queue-bind conn 1 :queue queue-name :exchange "test-ex" :routing-key "xx")
         (basic-consume conn 1 queue-name)
         (let* ((result (consume-message conn))
