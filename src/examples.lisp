@@ -10,7 +10,8 @@
                      :exchange "test-ex"
                      :routing-key "xx"
                      :body "this is the message content"
-                     :properties '((:app-id . "Application id"))))))
+                     :properties '((:app-id . "Application id")))
+      (channel-close  conn 1))))
 
 (defun test-recv ()
   (with-connection (conn)
