@@ -165,7 +165,6 @@
 (defun maybe-release-buffers (state)
   (amqp-maybe-release-buffers state))
 
-
 (defun confirm-channel-close (state channel)
   (cffi:with-foreign-objects ((decoded '(:struct amqp-channel-close-ok-t)))
     (setf (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-ok-t) 'dummy) 0)
@@ -180,6 +179,14 @@ the connection bound to CONN."
             (let ((,conn ,conn-sym))
               ,@body)
          (destroy-connection ,conn-sym)))))
+
+(defmacro with-channel ((conn channel) &body body)
+  "Opens CHANNEL, evaluates BODY and ensures you don't leave without
+closing the channel"
+  `(unwind-protect
+        (progn (channel-open ,conn ,channel)
+               ,@body)
+     (channel-close ,conn ,channel)))
 
 ;;;
 ;;;  API calls
@@ -520,7 +527,7 @@ then it will be encoded using ENCODING before sending.
 
 PROPERTIES - indicates an alist of message properties. The
 following property keywords are accepted:
-:CONTENT-TYPE :CONTENT-ENCODING :DELIVERY-MODE :PRIORITY :CORRELATION-ID 
+:CONTENT-TYPE :CONTENT-ENCODING :DELIVERY-MODE :PRIORITY :CORRELATION-ID
 :REPLY-TO :EXPIRATION :MESSAGE-ID :TIMESTAMP :TYPE :USER-ID :APP-ID :CLUSTER-ID :HEADERS"
   (check-type channel integer)
   (check-type exchange (or null string))
