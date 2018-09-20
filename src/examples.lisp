@@ -29,7 +29,8 @@
           (format t "Got message: ~s~%content: ~s~%props: ~s"
                   result (babel:octets-to-string (message/body message) :encoding :utf-8)
                   (message/properties message))
-          (cl-rabbit:basic-ack conn 1 (envelope/delivery-tag result)))))))
+          (cl-rabbit:basic-ack conn 1 (envelope/delivery-tag result))))
+      (channel-close  conn 1 ))))
 
 (defun test-recv-in-thread ()
   (let ((out *standard-output*))
