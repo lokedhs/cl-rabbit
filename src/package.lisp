@@ -71,7 +71,8 @@
            #:ssl-socket-set-verify
            #:ssl-socket-set-key-buffer
            #:set-init-ssl-library
-           #:ssl-socket-set-key))
+           #:ssl-socket-set-key
+           #:with-channel))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)
