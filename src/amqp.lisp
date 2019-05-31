@@ -178,7 +178,9 @@ the connection bound to CONN."
        (unwind-protect
             (let ((,conn ,conn-sym))
               ,@body)
-         (destroy-connection ,conn-sym)))))
+	 (unwind-protect
+	      (connection-close ,conn-sym)
+	   (destroy-connection ,conn-sym))))))
 
 (defmacro with-channel ((connection channel) &body body)
   "Opens CHANNEL, evaluates BODY and ensures you don't leave without
@@ -306,7 +308,7 @@ CONN - the connection object
 CODE - the reason code for closing the connection. Defaults to AMQP_REPLY_SUCCESS."
   (check-type code (or null integer))
   (with-state (state conn)
-    (verify-rpc-framing-call state nil (amqp-connection-close state (or code +amqp-reply-success+)))))
+    (verify-rpc-reply state nil (amqp-connection-close state (or code +amqp-reply-success+)))))
 
 (defun socket-open (socket host port)
   "Open a socket connection.
