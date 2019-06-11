@@ -2,6 +2,7 @@
 
 #+(or freebsd darwin)
 (progn
+  (flag "-I/usr/local/include")
   (include "time.h")
   (include "sys/time.h"))
 
