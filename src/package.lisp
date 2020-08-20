@@ -72,7 +72,29 @@
            #:ssl-socket-set-key-buffer
            #:set-init-ssl-library
            #:ssl-socket-set-key
-           #:with-channel))
+           #:with-channel
+           #:confirm-select
+           #:simple-wait-frame
+           #:method-frame-basic-acknowledgment
+           #:method-frame-basic-negative-acknowledgment
+           #:method-frame-basic-return
+           #:method-frame-basic-deliver
+           #:content-header-frame
+           #:content-body-frame
+           #:delivery-tag
+           #:multiplep
+           #:reply-text
+           #:reply-code
+           #:channel
+           #:exchange
+           #:routing-key
+           #:requeuep
+           #:redeliveredp
+           #:consumer-tag
+           #:class-id
+           #:body-size
+           #:properties
+           #:body))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)

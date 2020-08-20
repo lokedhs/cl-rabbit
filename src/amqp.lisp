@@ -1,79 +1,5 @@
 (in-package :cl-rabbit)
 
-(defvar *amqp-classes* '((#.+amqp-connection-class+ . :amqp-connection-class)
-                         (#.+amqp-channel-class+ . :amqp-channel-class)
-                         (#.+amqp-access-class+ . :amqp-access-class)
-                         (#.+amqp-exchange-class+ . :amqp-exchange-class)
-                         (#.+amqp-queue-class+ . :amqp-queue-class)
-                         (#.+amqp-basic-class+ .  :amqp-basic-class))
-  "Association list of defined amqp classes as (class-id class-symbol).")
-
-(defvar *amqp-methods* '((#.+amqp-connection-start-method+ . :amqp-connection-start-method)
-                         (#.+amqp-connection-start-ok-method+ . :amqp-connection-start-ok-method)
-                         (#.+amqp-connection-secure-method+ . :amqp-connection-secure-method)
-                         (#.+amqp-connection-secure-ok-method+ . :amqp-connection-secure-ok-method)
-                         (#.+amqp-connection-tune-method+ . :amqp-connection-tune-method)
-                         (#.+amqp-connection-tune-ok-method+ . :amqp-connection-tune-ok-method)
-                         (#.+amqp-connection-open-method+ . :amqp-connection-open-method)
-                         (#.+amqp-connection-open-ok-method+ . :amqp-connection-open-ok-method)
-                         (#.+amqp-connection-close-method+ . :amqp-connection-close-method)
-                         (#.+amqp-connection-close-ok-method+ . :amqp-connection-close-ok-method)
-                         (#.+amqp-connection-blocked-method+ . :amqp-connection-blocked-method)
-                         (#.+amqp-connection-unblocked-method+ . :amqp-connection-unblocked-method)
-                         (#.+amqp-channel-open-method+ . :amqp-channel-open-method)
-                         (#.+amqp-channel-open-ok-method+ . :amqp-channel-open-ok-method)
-                         (#.+amqp-channel-flow-method+ . :amqp-channel-flow-method)
-                         (#.+amqp-channel-flow-ok-method+ . :amqp-channel-flow-ok-method)
-                         (#.+amqp-channel-close-method+ . :amqp-channel-close-method)
-                         (#.+amqp-channel-close-ok-method+ . :amqp-channel-close-ok-method)
-                         (#.+amqp-access-request-method+ . :amqp-access-request-method)
-                         (#.+amqp-access-request-ok-method+ . :amqp-access-request-ok-method)
-                         (#.+amqp-exchange-declare-method+ . :amqp-exchange-declare-method)
-                         (#.+amqp-exchange-declare-ok-method+ . :amqp-exchange-declare-ok-method)
-                         (#.+amqp-exchange-delete-method+ . :amqp-exchange-delete-method)
-                         (#.+amqp-exchange-delete-ok-method+ . :amqp-exchange-delete-ok-method)
-                         (#.+amqp-exchange-bind-method+ . :amqp-exchange-bind-method+)
-                         (#.+amqp-exchange-bind-ok-method+ . :amqp-exchange-bind-ok-method)
-                         (#.+amqp-exchange-unbind-method+ . :amqp-exchange-unbind-method)
-                         (#.+amqp-exchange-unbind-ok-method+ . :amqp-exchange-unbind-ok-method)
-                         (#.+amqp-queue-declare-method+ . :amqp-queue-declare-method)
-                         (#.+amqp-queue-declare-ok-method+ . :amqp-queue-declare-ok-method)
-                         (#.+amqp-queue-bind-method+ . :amqp-queue-bind-method)
-                         (#.+amqp-queue-bind-ok-method+ . :amqp-queue-bind-ok-method)
-                         (#.+amqp-queue-purge-method+ . :amqp-queue-purge-method)
-                         (#.+amqp-queue-purge-ok-method+ . :amqp-queue-purge-ok-method)
-                         (#.+amqp-queue-delete-method+ . :amqp-queue-delete-method)
-                         (#.+amqp-queue-delete-ok-method+ . :amqp-queue-delete-ok-method)
-                         (#.+amqp-queue-unbind-method+ . :amqp-queue-unbind-method)
-                         (#.+amqp-queue-unbind-ok-method+ . :amqp-queue-unbind-ok-method)
-                         (#.+amqp-basic-qos-method+ . :amqp-basic-qos-method)
-                         (#.+amqp-basic-qos-ok-method+ . :amqp-basic-qos-ok-method)
-                         (#.+amqp-basic-consume-method+ . :amqp-basic-consume-method)
-                         (#.+amqp-basic-consume-ok-method+ . :amqp-basic-consume-ok-method)
-                         (#.+amqp-basic-cancel-method+ . :amqp-basic-cancel-method)
-                         (#.+amqp-basic-cancel-ok-method+ . :amqp-basic-cancel-ok-method)
-                         (#.+amqp-basic-publish-method+ . :amqp-basic-publish-method)
-                         (#.+amqp-basic-return-method+ . :amqp-basic-return-method)
-                         (#.+amqp-basic-deliver-method+ . :amqp-basic-deliver-method)
-                         (#.+amqp-basic-get-method+ . :amqp-basic-get-method)
-                         (#.+amqp-basic-get-ok-method+ . :amqp-basic-get-ok-method)
-                         (#.+amqp-basic-get-empty-method+ . :amqp-basic-get-empty-method)
-                         (#.+amqp-basic-ack-method+ . :amqp-basic-ack-method)
-                         (#.+amqp-basic-reject-method+ . :amqp-basic-reject-method)
-                         (#.+amqp-basic-recover-async-method+ . :amqp-basic-recover-async-method)
-                         (#.+amqp-basic-recover-method+ . :amqp-basic-recover-method)
-                         (#.+amqp-basic-recover-ok-method+ . :amqp-basic-recover-ok-method)
-                         (#.+amqp-basic-nack-method+ . :amqp-basic-nack-method)
-                         (#.+amqp-tx-select-method+ . :amqp-tx-select-method)
-                         (#.+amqp-tx-select-ok-method+ . :amqp-tx-select-ok-method)
-                         (#.+amqp-tx-commit-method+ . :amqp-tx-commit-method)
-                         (#.+amqp-tx-commit-ok-method+ . :amqp-tx-commit-ok-method)
-                         (#.+amqp-tx-rollback-method+ . :amqp-tx-rollback-method)
-                         (#.+amqp-tx-rollback-ok-method+ . :amqp-tx-rollback-ok-method)
-                         (#.+amqp-confirm-select-method+ . :amqp-confirm-select-method)
-                         (#.+amqp-confirm-select-ok-method+ . :amqp-confirm-select-ok-method))
-  "Association list of defined amqp methods (method-id method-symbol).")
-
 (define-condition rabbitmq-error (error)
   ()
   (:documentation "General superclass for rabbitmq errors"))
@@ -934,64 +860,89 @@ retrieved has been processed"
        :documentation "Method id."))
   (:documentation "Parent class for all method frames."))
 
-(defclass method-frame-basic-acknowledgement (method-frame)
+(defclass method-frame-basic-acknowledgment (method-frame)
   ((id :type integer
        :initform #.+amqp-basic-ack-method+
        :reader id
        :allocation :class
-       :documentation "Basic acknowledgement method ID.")
+       :documentation "Basic acknowledgment method ID.")
    (delivery-tag :type integer
                  :initarg :delivery-tag
                  :reader delivery-tag
-                 :documentation "Delivery tag.")
+                 :documentation "Sequence number of the confirmed message.")
    (multiplep :type t
               :initarg :multiplep
               :reader multiplep
-              :documentation "t when acknowldging multiple messages. nil otherwise.")))
+              :documentation "t when acknowledge messages up to and including the one with the sequence in delivery-tag."))
+   (:documentation "Basic acknowledgment method frame."))
 
-(defun make-method-frame-basic-acknowledgement (channel delivery-tag multiplep)
-  "Returns fresh object of 'METHOD-FRAME-BASIC-ACKNOWLEDGEMENT."
-  (make-instance 'method-frame-basic-acknowledgement
+(defun make-method-frame-basic-acknowledgment (channel delivery-tag multiplep)
+  "Returns fresh object of METHOD-FRAME-BASIC-ACKNOWLEDGMENT.
+
+Arguments:
+
+CHANNEL => INTEGER, Rabbitmq channel.
+DELIVERY-TAG => INTEGER, sequence number of confirmed message.
+MULTIPLEP => BOOLEAN, t when acknowledge messages up to and including the one with the sequence in delivery-tag."
+  (check-type channel integer)
+  (check-type delivery-tag integer)
+  (make-instance 'method-frame-basic-acknowledgment
                  :channel channel
                  :delivery-tag delivery-tag
                  :multiplep multiplep))
 
-(defmethod print-object ((obj method-frame-basic-acknowledgement) stream)
+(defmethod print-object ((obj method-frame-basic-acknowledgment) stream)
   (print-unreadable-object (obj stream :type t :identity nil)
     (format stream "CHANNEL ~s ID ~s DELIVERY-TAG ~s MULTIPLEP ~s"
             (channel obj)
-            (cdr (assoc (id obj) *amqp-methods*))
+            (id obj)
             (delivery-tag obj)
             (multiplep obj))))
 
-(defclass method-frame-basic-negative-acknowledgement (method-frame)
+(defclass method-frame-basic-negative-acknowledgment (method-frame)
   ((id :type integer
        :initform #.+amqp-basic-nack-method+
        :reader id
        :allocation :class
-       :documentation "Basic negative acknowledgement method ID.")
+       :documentation "Basic negative acknowledgment method ID.")
    (delivery-tag :type integer
                  :initarg :delivery-tag
-                 :reader delivery-tag)
+                 :reader delivery-tag
+                 :documentation "Sequence number of the negatively confirmed message.")
    (multiplep :type t
               :initarg :multiplep
-              :reader multiplep)
+              :reader multiplep
+              :documentation "t when acknowledge messages up to and including the one with the sequence in delivery-tag.")
    (requeuep :type t
              :initarg :requeuep
-             :reader requeuep)))
+             :reader requeuep
+             :documentation "t when instructing the broker to requeue message. this slot should be
+ignored when publisher receives negative acknowledgment from broker."))
+  (:documentation "Basic negative acknowledgment (nack) method frame."))
 
-(defun make-method-frame-basic-negative-acknowledgement (channel delivery-tag multiplep requeuep)
-  (make-instance 'method-frame-basic-negative-acknowledgement
+(defun make-method-frame-basic-negative-acknowledgment (channel delivery-tag multiplep requeuep)
+  "Returns fresh object of METHOD-FRAME-BASIC-NEGATIVE-ACKNOWLEDGMENT
+
+Arguments:
+
+CHANNEL => INTEGER, Rabbitmq channel.
+DELIVERY-TAG => INTEGER, sequence number of confirmed message.
+MULTIPLEP => BOOLEAN, t when acknowledge messages up to and including the one with the sequence in delivery-tag.
+REQUEUEP => BOOLEAN, t when instructing the broker to requeue message. this slot should be
+ignored when publisher receives negative acknowledgment from broker."
+  (check-type channel integer)
+  (check-type delivery-tag integer)
+  (make-instance 'method-frame-basic-negative-acknowledgment
                  :channel channel
                  :delivery-tag delivery-tag
                  :multiplep multiplep
                  :requeuep requeuep))
 
-(defmethod print-object ((obj method-frame-basic-negative-acknowledgement) stream)
+(defmethod print-object ((obj method-frame-basic-negative-acknowledgment) stream)
   (print-unreadable-object (obj stream :type t :identity nil)
     (format stream "CHANNEL ~s ID ~s DELIVERY-TAG ~s MULTIPLEP ~s REQUEUEP ~s"
             (channel obj)
-            (cdr (assoc (id obj) *amqp-methods*))
+            (id obj)
             (delivery-tag obj)
             (multiplep obj) 
             (requeuep obj))))
@@ -1004,18 +955,37 @@ retrieved has been processed"
        :documentation "Basic return method ID.")
    (reply-code :type integer
                :initarg :reply-code
-               :reader reply-code)
+               :reader reply-code
+               :documentation "The AMQ reply code.")
    (reply-text :type string
                :initarg :reply-text
-               :reader reply-text)
+               :reader reply-text
+               :documentation "The localized reply text. this text can be logged as an aid to resolving issues.")
    (exchange :type string
              :initarg :exchange
-             :reader exchange)
+             :reader exchange
+             :documentation "Exchange name.")
    (routing-key :type string
                 :initarg :routing-key
-                :reader routing-key)))
+                :reader routing-key
+                :documentation "Message routing key."))
+  (:documentation "Basic return method frame."))
 
 (defun make-method-frame-basic-return (channel reply-code reply-text exchange routing-key)
+  "Returns fresh object of METHOD-FRAME-BASIC-RETURN.
+
+Arguments:
+
+CHANNEL => INTEGER, Rabbitmq channel.
+REPLY-CODE => INTEGER, AMQ reply code.
+REPLY-TEXT => STRING, localized reply text. this text can be logged as an aid to resolving issues.
+EXCHANGE => STRING, Rabbitmq exchange name.
+ROUTING-KEY => STRING, Message routing key."
+  (check-type channel integer)
+  (check-type reply-code integer)
+  (check-type reply-text string)
+  (check-type exchange string)
+  (check-type routing-key string)
   (make-instance 'method-frame-basic-return
                  :channel channel
                  :reply-code reply-code
@@ -1027,7 +997,7 @@ retrieved has been processed"
   (print-unreadable-object (obj stream :type t :identity nil)
     (format stream "CHANNEL ~s ID ~s REPLY-CODE ~s REPLY-TEXT ~s EXCHANGE ~s ROUTING-KEY ~s"
             (channel obj)
-            (cdr (assoc (id obj) *amqp-methods*))
+            (id obj)
             (reply-code obj)
             (reply-text obj)
             (exchange obj)
@@ -1041,19 +1011,26 @@ retrieved has been processed"
        :documentation "Basic deliver method ID.")
    (consumer-tag :type string
                  :initarg :consumer-tag
-                 :reader consumer-tag)
+                 :reader consumer-tag
+                 :documentation "Identifier for the consumer, valid within the current channel.
+The server-assigned and channel-specific delivery tag")
    (delivery-tag :type integer
                  :initarg :delivery-tag
-                 :reader delivery-tag)
+                 :reader delivery-tag
+                 :documentation "Sequence number of confirmed message.")
    (redeliveredp :type t
                  :initarg :redeliveredp
-                 :reader redeliveredp)
+                 :reader redeliveredp
+                 :documentation "t when message is redelivered, after it was not successfully acknowledged by a consumer.")
    (exchange :type string
              :initarg :exchange
-             :reader exchange)
+             :reader exchange
+             :documentation "Exchange name.")
    (routing-key :type string
                 :initarg :routing-key
-                :reader routing-key)))
+                :reader routing-key
+                :documentation "Message routing key."))
+  (:documentation "Basic deliver method frame."))
 
 (defun make-method-frame-basic-deliver (channel
                                         consumer-tag
@@ -1061,6 +1038,16 @@ retrieved has been processed"
                                         redeliveredp
                                         exchange
                                         routing-key)
+  "Returns fresh object of METHOD-FRAME-BASIC-DELIVER.
+
+Arguments:
+
+CHANNEL => INTEGER, Rabbitmq channel.
+CONSUMER-TAG => STRING, identifier for the consumer, valid within the current channel.
+DELIVERY-TAG => INTEGER, sequence number of confirmed message.
+REDELIVEREDP => BOOLEAN, t when message is redelivered after it was not successfully acknowledged by a consumer.
+EXCHANGE => STRING, Exchange name.
+ROUTING-KEY => STRING, Message routing key."
   (make-instance 'method-frame-basic-deliver
                  :channel channel
                  :consumer-tag consumer-tag
@@ -1074,98 +1061,165 @@ retrieved has been processed"
     (format stream "CHANNEL ~s ID ~s CONSUMER-TAG ~s DELIVERY-TAG ~s REDELIVEREDP ~s ~
 EXCHANGE ~s ROUTING-KEY ~s"
             (channel obj)
-            (cdr (assoc (id obj) *amqp-methods*))
+            (id obj)
             (consumer-tag obj)
             (delivery-tag obj)
             (redeliveredp obj)
             (exchange obj)
             (routing-key obj))))
 
-(defclass frame-header ()          ; RENAME TO frame-content-header
+(defclass content-header-frame ()
   ((channel :type integer
             :initarg :channel
-            :reader frame-header/channel)
+            :reader channel
+            :documentation "channel.")
    (class-id :type integer
              :initarg :class-id
-             :reader frame-header/class-id)
+             :reader class-id
+             :documentation "AMQP class id.")
    (body-size :type integer
               :initarg :body-size
-              :reader frame-header/body-size)
+              :reader body-size
+              :documentation "Body payload size in bytes.")
    (properties :type list
-              :initarg :properties
-              :reader frame-header/properties)))
+               :initarg :properties
+               :reader properties
+               :documentation "Payload properties."))
+  (:documentation "Content header frame."))
 
-(defun make-frame-header (channel class-id body-size properties)
-  (make-instance 'frame-header
+(defun make-content-header-frame (channel class-id body-size properties)
+  "Returns fresh object of CONTENT-HEADER-FRAME
+
+Arguments:
+
+CHANNEL => INTEGER, Rabbitmq channel.
+CLASS-ID => INTEGER, AMQP class id.
+BODY-SIZE => INTEGER, Body payload size in bytes.
+PROPERTIES => ALIST, Payload properties."
+  (make-instance 'content-header-frame
                  :channel channel
                  :class-id class-id
                  :body-size body-size
                  :properties (load-properties-to-alist properties)))
 
-(defmethod print-object ((obj frame-header) stream)
+(defmethod print-object ((obj content-header-frame) stream)
   (print-unreadable-object (obj stream :type t :identity nil)
-    (format stream "CHANNEL ~s CLASS-ID ~s BODY-SIZE ~s PROPERTIES"
-            (frame-header/channel obj)
-            (cdr (assoc (frame-header/class-id obj) *amqp-classes*))
-            (frame-header/body-size obj))))
+    (format stream "CHANNEL ~s CLASS-ID ~s BODY-SIZE ~s PROPERTIES ~s"
+            (channel obj)
+            (cdr (assoc (class-id obj) *amqp-classes*))
+            (body-size obj)
+            (properties obj))))
 
-(defclass frame-body ()            ; RENAME TO frame-content
-  ())
+(defclass content-body-frame ()
+  ((channel :type integer
+           :initarg :channel
+           :reader channel
+           :documentation "Rabbitmq channel.")
+   (body :type (simple-array (unsigned-byte 8) (*))
+         :initarg :body
+         :reader body
+         :documentation "Body payload raw content."))
+  (:documentation "Content body frame"))
 
-(defmacro cffi-struct->lisp-class (method-obj struct-name class-name)
-  (let* ((method-struct-slots '((amqp-basic-ack-t delivery-tag multiplep)
-                                (amqp-basic-nack-t delivery-tag multiplep requeuep)
-                                (amqp-basic-return-t reply-code reply-text exchange routing-key)
-                                (amqp-basic-deliver-t
-                                 consumer-tag
-                                 delivery-tag
-                                 redeliveredp
-                                 exchange
-                                 routing-key)))
-         (method-class-slots '((method-frame-basic-acknowledgement channel delivery-tag multiplep)
-                               (method-frame-basic-negative-acknowledgement
-                                channel
-                                delivery-tag
-                                multiplep
-                                requeuep)
-                               (method-frame-basic-return
-                                channel
-                                reply-code
-                                (reply-text bytes->string)
-                                (exchange bytes->string)
-                                (routing-key bytes->string))
-                               (method-frame-basic-deliver
-                                channel
-                                (consumer-tag bytes->string)
-                                delivery-tag redeliveredp
-                                (exchange bytes->string)
-                                (routing-key bytes->string)))))
-    (labels ((get-struct-slots (struct-name)
-               (rest (assoc (string struct-name)
-                            method-struct-slots
-                            :key #'(lambda (item)
-                                     (string item))
-                            :test #'equalp)))
-           (get-class-slots (class-name)
-             (rest (assoc (string class-name)
-                          method-class-slots
-                          :key #'(lambda (item)
-                                   (string item))
-                          :test #'equalp))))
-      `(cffi:with-foreign-slots (,(mapcar #'(lambda (slot)
-                                              (read-from-string (string slot)))
-                                          (get-struct-slots struct-name))
-                                  ,method-obj
-                                  (:struct ,struct-name))
-         (,(read-from-string (concatenate 'string "make-" (string class-name)))
-           ,@(mapcar #'(lambda (item)
-                         (typecase item
-                           (list (list (read-from-string (string (second item)))
-                                       (read-from-string (string (first item)))))
-                           (otherwise (read-from-string (string item)))))
-                     (get-class-slots class-name)))))))
+(defun make-content-body-frame (channel body)
+  "Returns fresh object of CONTENT-BODY-FRAME.
 
-(defun channel-confirm-select (conn channel)
+Arguments:
+
+CHANNEL => INTEGER, Rabbitmq channel.
+BODY => ARRAY of BYTES, contents."
+  (make-instance 'content-body-frame
+                 :channel channel
+                 :body (bytes->array body)))
+
+(defmethod print-object ((obj content-body-frame) stream)
+  (print-unreadable-object (obj stream :type t :identity nil)
+  (format stream "CHANNEL ~s Body Size ~s" (channel obj) (length (body obj)))))
+
+(defmethod foreign-method->class ((method-id (eql #.+amqp-basic-ack-method+)) method-struct channel)
+  "Returns fresh object of METHOD-FRAME-BASIC-ACKNOWLEDGMENT filled with data from foreign METHOD-STRUCT.
+
+Arguments:
+
+METHOD-ID => CONSTANT, AMQP basic acknowledgment method id.
+METHOD-STRUCT => CFFI FOREIGN POINTER, decoded basic acknowledgment method frame.
+CHANNEL => INTEGER, Rabbitmq channel."
+  (cffi:with-foreign-slots ((delivery-tag multiplep) method-struct (:struct amqp-basic-ack-t))
+    (make-method-frame-basic-acknowledgment channel delivery-tag (> multiplep 0))))
+
+(defmethod foreign-method->class ((method-id (eql #.+amqp-basic-nack-method+)) method-struct channel)
+    "Returns fresh object of METHOD-FRAME-BASIC-NEGATIVE-ACKNOWLEDGMENT filled with data from foreign METHOD-STRUCT.
+
+Arguments:
+
+METHOD-ID => CONSTANT, AMQP basic acknowledgment method id.
+METHOD-STRUCT => CFFI FOREIGN POINTER, decoded negative basic acknowledgment method frame.
+CHANNEL => INTEGER, Rabbitmq channel."
+  (cffi:with-foreign-slots ((delivery-tag multiplep requeuep)
+                            method-struct
+                            (:struct amqp-basic-nack-t))
+    (make-method-frame-basic-negative-acknowledgment channel
+                                                      delivery-tag
+                                                      (> multiplep 0)
+                                                      (> requeuep 0))))
+
+(defmethod foreign-method->class ((method-id (eql #.+amqp-basic-return-method+))
+                                  method-struct
+                                  channel)
+    "Returns fresh object of METHOD-FRAME-BASIC-RETURN filled with data from foreign METHOD-STRUCT.
+
+Arguments:
+
+METHOD-ID => CONSTANT, AMQP basic return method id.
+METHOD-STRUCT => CFFI FOREIGN POINTER, decoded basic return method frame.
+CHANNEL => INTEGER, Rabbitmq channel."
+  (cffi:with-foreign-slots ((reply-code reply-text exchange routing-key)
+                            method-struct
+                            (:struct amqp-basic-return-t))
+    (make-method-frame-basic-return channel
+                                    reply-code
+                                    (bytes->string reply-text)
+                                    (bytes->string exchange)
+                                    (bytes->string routing-key))))
+
+(defmethod foreign-method->class ((method-id (eql #.+amqp-basic-deliver-method+))
+                                  method-struct
+                                  channel)
+      "Returns fresh object of METHOD-FRAME-BASIC-DELIVER filled with data from foreign METHOD-STRUCT.
+
+Arguments:
+
+METHOD-ID => CONSTANT, AMQP basic deliver method id.
+METHOD-STRUCT => CFFI FOREIGN POINTER, decoded basic deliver method frame.
+CHANNEL => INTEGER, Rabbitmq channel."
+  (cffi:with-foreign-slots ((consumer-tag delivery-tag redeliveredp exchange routing-key)
+                            method-struct
+                            (:struct amqp-basic-deliver-t))
+    (make-method-frame-basic-deliver channel
+                                     (bytes->string consumer-tag)
+                                     delivery-tag
+                                     (> redeliveredp 0)
+                                     (bytes->string exchange)
+                                     (bytes->string routing-key))))
+
+(defmethod foreign-method->class (method-id method-struct channel)
+      "Returns t when METHOD-ID equals CONFIRM-SELECT-OK-METHOD otherwise signals and error.
+
+Arguments:
+
+METHOD-ID => INTEGER, AMQP basic return method id.
+METHOD-STRUCT => CFFI FOREIGN POINTER, decoded method frame.
+CHANNEL => INTEGER, Rabbitmq channel."
+  (declare (ignore method-struct channel))
+  (when (null (find-if #'(lambda (value)
+                           (eql var value))
+                       '(+amqp-confirm-select-ok-method+)))
+    (error "Unhandled method frame, ID ~s" method-id))
+  t)
+
+(defun confirm-select (conn channel)
+  "Set CHANNEL to publisher confirm mode. a channel in transaction mode cannot be set to confirm mode.
+returns t if successful. signals RABBITMQ-SERVER-ERROR if channel is in transaction mode."
   (check-type channel integer)
   (with-state (state conn)
     (unwind-protect
@@ -1173,54 +1227,43 @@ EXCHANGE ~s ROUTING-KEY ~s"
       (maybe-release-buffers state))))
 
 (defun simple-wait-frame (conn)
+  "Returns frame object for supported frames (see notes section), t for confirmation (ok) frames or
+signals error for unsupported (not implemented frames), this function waits for frame on ANY
+CHANNEL on CONN.
+
+Arguments:
+CONN => Rabbitmq connection.
+
+NOTES:
+Currently implemented frames are basic acknowledgment, basic negative acknowledgment, return,
+deliver and select ok method frames, content header and content body frames."
   (with-state (state conn)
     (unwind-protect
-         (labels ((extract-frame-method (frame channel)
+         (labels ((extract-method-frame (frame channel)
                     (let* ((method (cffi:foreign-slot-value frame
                                                             '(:struct amqp-frame-t)
                                                             'payload-method))
                            (decoded (getf method 'decoded)))
-                      (case (getf method 'id)
-                        (#.+amqp-basic-ack-method+
-                         (cffi-struct->lisp-class decoded
-                                                  amqp-basic-ack-t
-                                                  method-frame-basic-acknowledgement))
-                        (#.+amqp-basic-nack-method+
-                         (cffi-struct->lisp-class decoded
-                                                  amqp-basic-nack-t
-                                                  method-frame-basic-negative-acknowledgement))
-                        
-                        (#.+amqp-basic-return-method+
-                         (cffi-struct->lisp-class decoded
-                                                  amqp-basic-return-t
-                                                  method-frame-basic-return))
-                        (#.+amqp-basic-deliver-method+
-                         (cffi-struct->lisp-class decoded
-                                                  amqp-basic-deliver-t
-                                                  method-frame-basic-deliver))
-                        (#.+amqp-confirm-select-ok-method+ t)
-                        (otherwise (error "Unhandled method frame, ID ~s"
-                                          (cdr (assoc (getf method 'id) *amqp-methods*)))))))
-                  (extract-frame-header (frame channel)
+                      (foreign-method->class (getf method 'id) decoded channel)))
+                  (extract-content-header (frame channel)
                     (cffi:with-foreign-slots ((payload-properties-class-id
                                                payload-properties-body-size
                                                payload-properties-decoded)
                                               frame
                                               (:struct amqp-frame-t))
-                      (make-frame-header channel
-                                         payload-properties-class-id
-                                         payload-properties-body-size
-                                         (cffi:mem-ref payload-properties-decoded
-                                                       '(:struct amqp-basic-properties-t))))))
+                      (make-content-header-frame channel
+                                                 payload-properties-class-id
+                                                 payload-properties-body-size
+                                                 (cffi:mem-ref payload-properties-decoded
+                                                               '(:struct amqp-basic-properties-t)))))
+                  (extract-content-body (frame channel)
+                    (cffi:with-foreign-slots ((payload-body-fragment) frame (:struct amqp-frame-t))
+                      (make-content-body-frame channel payload-body-fragment))))
            (cffi:with-foreign-objects ((frame '(:struct amqp-frame-t)))
              (verify-status (amqp-simple-wait-frame state frame))
              (cffi:with-foreign-slots ((frame-type channel) frame (:struct amqp-frame-t))
                (ccase frame-type
-                 (#.+amqp-frame-method+ (format t "~&Method frame received.")
-                                        (format t "~&~S" (extract-frame-method frame channel)))
-                 (#.+amqp-frame-header+ (format t "~&Header frame received.")
-                                        (format t "~&~S" (extract-frame-header frame channel)))
-                 (#.+amqp-frame-body+ (format t "~&Body frame received."))))))
+                 (#.+amqp-frame-method+ (extract-method-frame frame channel))
+                 (#.+amqp-frame-header+ (extract-content-header frame channel))
+                 (#.+amqp-frame-body+ (extract-content-body frame channel))))))
       (maybe-release-buffers state))))
-
-
