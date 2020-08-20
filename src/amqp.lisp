@@ -275,7 +275,7 @@ SOCKET - An SSL/TLS socket object.
 VERIFY-P - verify Enable or disable peer verification."
   (verify-status (amqp-ssl-socket-set-verify socket (if verify-p 1 0))))
 
-(defun set-init-ssl-library (init-p)
+(defun set-init-ssl-library (init)
   "Sets whether rabbitmq-c initialises the underlying SSL library.
 
 For SSL libraries that require a one-time initialisation across
@@ -295,7 +295,7 @@ amqp_open_socket() will not have any effect.
 
 INIT - If NIL rabbitmq-c will not initialise the SSL library,
        otherwise rabbitmq-c will initialise the SSL library"
-  (amqp-set-initialize-ssl-library (if init-p 1 0)))
+  (amqp-set-initialize-ssl-library (if init 1 0)))
 
 (defun connection-close (conn &key code)
   "Closes the entire connection.
@@ -814,7 +814,7 @@ retrieved has been processed"
          (not (zerop (amqp-data-in-buffer state)))
       (maybe-release-buffers state))))
 
-(defun frames-enqueued-p (conn)
+(defun frames-enqueued (conn)
   (with-state (state conn)
     (unwind-protect
          (not (zerop (amqp-frames-enqueued state)))
