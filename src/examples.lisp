@@ -55,7 +55,7 @@
                            :body "Publisher message.")
             (let ((basic-ack-frame (simple-wait-frame conn)))
               (format t "~&Got basic ack frame for message ~s"
-                      (delivery-tag basic-ack-frame))))
+                      (method-frame-basic-acknowledgment/delivery-tag basic-ack-frame))))
           (basic-consume conn 2 queue-name)
           (let* ((result (consume-message conn))
                  (message (envelope/message result)))

@@ -852,29 +852,29 @@ retrieved has been processed"
 (defclass method-frame ()
   ((channel :type integer
             :initarg :channel
-            :reader channel
+            :reader method-frame/channel
             :documentation "Frame channel.")
    (id :type integer
-       :initarg :id
-       :reader id
+       :reader method-frame/id
        :documentation "Method id."))
   (:documentation "Parent class for all method frames."))
 
 (defclass method-frame-basic-acknowledgment (method-frame)
-  ((id :type integer
-       :initform #.+amqp-basic-ack-method+
-       :reader id
+  ((channel :reader method-frame-basic-acknowledgment/channel)
+   (id :initform #.+amqp-basic-ack-method+
+       :reader method-frame-basic-acknowledgment/id
        :allocation :class
        :documentation "Basic acknowledgment method ID.")
    (delivery-tag :type integer
                  :initarg :delivery-tag
-                 :reader delivery-tag
+                 :reader method-frame-basic-acknowledgment/delivery-tag
                  :documentation "Sequence number of the confirmed message.")
    (multiplep :type t
               :initarg :multiplep
-              :reader multiplep
-              :documentation "t when acknowledge messages up to and including the one with the sequence in delivery-tag."))
-   (:documentation "Basic acknowledgment method frame."))
+              :reader method-frame-basic-acknowledgment/multiplep
+              :documentation "t when acknowledge messages up to and including the one with the
+sequence in delivery-tag."))
+  (:documentation "Basic acknowledgment method frame."))
 
 (defun make-method-frame-basic-acknowledgment (channel delivery-tag multiplep)
   "Returns fresh object of METHOD-FRAME-BASIC-ACKNOWLEDGMENT.
@@ -894,28 +894,29 @@ MULTIPLEP => BOOLEAN, t when acknowledge messages up to and including the one wi
 (defmethod print-object ((obj method-frame-basic-acknowledgment) stream)
   (print-unreadable-object (obj stream :type t :identity nil)
     (format stream "CHANNEL ~s ID ~s DELIVERY-TAG ~s MULTIPLEP ~s"
-            (channel obj)
-            (id obj)
-            (delivery-tag obj)
-            (multiplep obj))))
+            (method-frame-basic-acknowledgment/channel obj)
+            (method-frame-basic-acknowledgment/id obj)
+            (method-frame-basic-acknowledgment/delivery-tag obj)
+            (method-frame-basic-acknowledgment/multiplep obj))))
 
 (defclass method-frame-basic-negative-acknowledgment (method-frame)
-  ((id :type integer
-       :initform #.+amqp-basic-nack-method+
-       :reader id
+  ((channel :reader method-frame-basic-negative-acknowledgment/channel)
+   (id :initform #.+amqp-basic-nack-method+
+       :reader method-frame-basic-negative-acknowledgment/id
        :allocation :class
        :documentation "Basic negative acknowledgment method ID.")
    (delivery-tag :type integer
                  :initarg :delivery-tag
-                 :reader delivery-tag
+                 :reader method-frame-basic-negative-acknowledgment/delivery-tag
                  :documentation "Sequence number of the negatively confirmed message.")
    (multiplep :type t
               :initarg :multiplep
-              :reader multiplep
-              :documentation "t when acknowledge messages up to and including the one with the sequence in delivery-tag.")
+              :reader method-frame-basic-negative-acknowledgment/multiplep
+              :documentation "t when acknowledge messages up to and including the one with the
+sequence in delivery-tag.")
    (requeuep :type t
              :initarg :requeuep
-             :reader requeuep
+             :reader method-frame-basic-negative-acknowledgment/requeuep
              :documentation "t when instructing the broker to requeue message. this slot should be
 ignored when publisher receives negative acknowledgment from broker."))
   (:documentation "Basic negative acknowledgment (nack) method frame."))
@@ -941,33 +942,33 @@ ignored when publisher receives negative acknowledgment from broker."
 (defmethod print-object ((obj method-frame-basic-negative-acknowledgment) stream)
   (print-unreadable-object (obj stream :type t :identity nil)
     (format stream "CHANNEL ~s ID ~s DELIVERY-TAG ~s MULTIPLEP ~s REQUEUEP ~s"
-            (channel obj)
-            (id obj)
-            (delivery-tag obj)
-            (multiplep obj) 
-            (requeuep obj))))
+            (method-frame-basic-negative-acknowledgment/channel obj)
+            (method-frame-basic-negative-acknowledgment/id obj)
+            (method-frame-basic-negative-acknowledgment/delivery-tag obj)
+            (method-frame-basic-negative-acknowledgment/multiplep obj) 
+            (method-frame-basic-negative-acknowledgment/requeuep obj))))
 
 (defclass method-frame-basic-return (method-frame)
-  ((id :type integer
-       :initform #.+amqp-basic-return-method+
-       :reader id
+  ((channel :reader method-frame-basic-return/channel)
+   (id :initform #.+amqp-basic-return-method+
+       :reader method-frame-basic-return/id
        :allocation :class
        :documentation "Basic return method ID.")
    (reply-code :type integer
                :initarg :reply-code
-               :reader reply-code
+               :reader method-frame-basic-return/reply-code
                :documentation "The AMQ reply code.")
    (reply-text :type string
                :initarg :reply-text
-               :reader reply-text
+               :reader method-frame-basic-return/reply-text
                :documentation "The localized reply text. this text can be logged as an aid to resolving issues.")
    (exchange :type string
              :initarg :exchange
-             :reader exchange
+             :reader method-frame-basic-return/exchange
              :documentation "Exchange name.")
    (routing-key :type string
                 :initarg :routing-key
-                :reader routing-key
+                :reader method-frame-basic-return/routing-key
                 :documentation "Message routing key."))
   (:documentation "Basic return method frame."))
 
@@ -996,39 +997,40 @@ ROUTING-KEY => STRING, Message routing key."
 (defmethod print-object ((obj method-frame-basic-return) stream)
   (print-unreadable-object (obj stream :type t :identity nil)
     (format stream "CHANNEL ~s ID ~s REPLY-CODE ~s REPLY-TEXT ~s EXCHANGE ~s ROUTING-KEY ~s"
-            (channel obj)
-            (id obj)
-            (reply-code obj)
-            (reply-text obj)
-            (exchange obj)
-            (routing-key obj))))
+            (method-frame-basic-return/channel obj)
+            (method-frame-basic-return/id obj)
+            (method-frame-basic-return/reply-code obj)
+            (method-frame-basic-return/reply-text obj)
+            (method-frame-basic-return/exchange obj)
+            (method-frame-basic-return/routing-key obj))))
 
 (defclass method-frame-basic-deliver (method-frame)
-  ((id :type integer
-       :initform #.+amqp-basic-deliver-method+
-       :reader id
+  ((channel :reader method-frame-basic-deliver/channel)
+   (id :initform #.+amqp-basic-deliver-method+
+       :reader method-frame-basic-deliver/id
        :allocation :class
        :documentation "Basic deliver method ID.")
    (consumer-tag :type string
                  :initarg :consumer-tag
-                 :reader consumer-tag
+                 :reader method-frame-basic-deliver/consumer-tag
                  :documentation "Identifier for the consumer, valid within the current channel.
 The server-assigned and channel-specific delivery tag")
    (delivery-tag :type integer
                  :initarg :delivery-tag
-                 :reader delivery-tag
+                 :reader method-frame-basic-deliver/delivery-tag
                  :documentation "Sequence number of confirmed message.")
    (redeliveredp :type t
                  :initarg :redeliveredp
-                 :reader redeliveredp
-                 :documentation "t when message is redelivered, after it was not successfully acknowledged by a consumer.")
+                 :reader method-frame-basic-deliver/redeliveredp
+                 :documentation "t when message is redelivered, after it was not successfully
+acknowledged by a consumer.")
    (exchange :type string
              :initarg :exchange
-             :reader exchange
+             :reader method-frame-basic-deliver/exchange
              :documentation "Exchange name.")
    (routing-key :type string
                 :initarg :routing-key
-                :reader routing-key
+                :reader method-frame-basic-deliver/routing-key
                 :documentation "Message routing key."))
   (:documentation "Basic deliver method frame."))
 
@@ -1045,7 +1047,8 @@ Arguments:
 CHANNEL => INTEGER, Rabbitmq channel.
 CONSUMER-TAG => STRING, identifier for the consumer, valid within the current channel.
 DELIVERY-TAG => INTEGER, sequence number of confirmed message.
-REDELIVEREDP => BOOLEAN, t when message is redelivered after it was not successfully acknowledged by a consumer.
+REDELIVEREDP => BOOLEAN, t when message is redelivered after it was not successfully acknowledged
+by a consumer.
 EXCHANGE => STRING, Exchange name.
 ROUTING-KEY => STRING, Message routing key."
   (make-instance 'method-frame-basic-deliver
@@ -1060,30 +1063,30 @@ ROUTING-KEY => STRING, Message routing key."
   (print-unreadable-object (obj stream :type t :identity nil)
     (format stream "CHANNEL ~s ID ~s CONSUMER-TAG ~s DELIVERY-TAG ~s REDELIVEREDP ~s ~
 EXCHANGE ~s ROUTING-KEY ~s"
-            (channel obj)
-            (id obj)
-            (consumer-tag obj)
-            (delivery-tag obj)
-            (redeliveredp obj)
-            (exchange obj)
-            (routing-key obj))))
+            (method-frame-basic-deliver/channel obj)
+            (method-frame-basic-deliver/id obj)
+            (method-frame-basic-deliver/consumer-tag obj)
+            (method-frame-basic-deliver/delivery-tag obj)
+            (method-frame-basic-deliver/redeliveredp obj)
+            (method-frame-basic-deliver/exchange obj)
+            (method-frame-basic-deliver/routing-key obj))))
 
 (defclass content-header-frame ()
   ((channel :type integer
             :initarg :channel
-            :reader channel
+            :reader content-header-frame/channel
             :documentation "channel.")
    (class-id :type integer
              :initarg :class-id
-             :reader class-id
+             :reader content-header-frame/class-id
              :documentation "AMQP class id.")
    (body-size :type integer
               :initarg :body-size
-              :reader body-size
+              :reader content-header-frame/body-size
               :documentation "Body payload size in bytes.")
    (properties :type list
                :initarg :properties
-               :reader properties
+               :reader content-header-frame/properties
                :documentation "Payload properties."))
   (:documentation "Content header frame."))
 
@@ -1105,19 +1108,19 @@ PROPERTIES => ALIST, Payload properties."
 (defmethod print-object ((obj content-header-frame) stream)
   (print-unreadable-object (obj stream :type t :identity nil)
     (format stream "CHANNEL ~s CLASS-ID ~s BODY-SIZE ~s PROPERTIES ~s"
-            (channel obj)
-            (cdr (assoc (class-id obj) *amqp-classes*))
-            (body-size obj)
-            (properties obj))))
+            (content-header-frame/channel obj)
+            (cdr (assoc (content-header-frame/class-id obj) *amqp-classes*))
+            (content-header-frame/body-size obj)
+            (content-header-frame/properties obj))))
 
 (defclass content-body-frame ()
   ((channel :type integer
            :initarg :channel
-           :reader channel
+           :reader content-body-frame/channel
            :documentation "Rabbitmq channel.")
    (body :type (simple-array (unsigned-byte 8) (*))
          :initarg :body
-         :reader body
+         :reader content-body-frame/body
          :documentation "Body payload raw content."))
   (:documentation "Content body frame"))
 
@@ -1134,7 +1137,9 @@ BODY => ARRAY of BYTES, contents."
 
 (defmethod print-object ((obj content-body-frame) stream)
   (print-unreadable-object (obj stream :type t :identity nil)
-  (format stream "CHANNEL ~s Body Size ~s" (channel obj) (length (body obj)))))
+  (format stream "CHANNEL ~s Body Size ~s"
+          (content-body-frame/channel obj)
+          (length (content-body-frame/body obj)))))
 
 (defmethod foreign-method->class ((method-id (eql #.+amqp-basic-ack-method+)) method-struct channel)
   "Returns fresh object of METHOD-FRAME-BASIC-ACKNOWLEDGMENT filled with data from foreign METHOD-STRUCT.
