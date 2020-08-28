@@ -107,7 +107,10 @@
            #:content-header-frame/properties
            #:content-body-frame
            #:content-body-frame/channel
-           #:content-body-frame/body))
+           #:content-body-frame/body
+           #:method-frame-error
+           #:method-frame-error/channel
+           #:method-frame-error/method-id))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)
