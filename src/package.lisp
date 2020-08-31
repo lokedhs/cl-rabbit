@@ -72,7 +72,45 @@
            #:ssl-socket-set-key-buffer
            #:set-init-ssl-library
            #:ssl-socket-set-key
-           #:with-channel))
+           #:with-channel
+           #:confirm-select
+           #:simple-wait-frame
+           #:method-frame-basic-acknowledgment
+           #:method-frame-basic-acknowledgment/channel
+           #:method-frame-basic-acknowledgment/id
+           #:method-frame-basic-acknowledgment/delivery-tag
+           #:method-frame-basic-acknowledgment/multiplep
+           #:method-frame-basic-negative-acknowledgment
+           #:method-frame-basic-negative-acknowledgment/channel
+           #:method-frame-basic-negative-acknowledgment/id
+           #:method-frame-basic-negative-acknowledgment/multiplep
+           #:method-frame-basic-negative-acknowledgment/requeuep
+           #:method-frame-basic-return
+           #:method-frame-basic-return/channel
+           #:method-frame-basic-return/id
+           #:method-frame-basic-return/reply-code
+           #:method-frame-basic-return/reply-text
+           #:method-frame-basic-return/exchange
+           #:method-frame-basic-return/routing-key
+           #:method-frame-basic-deliver
+           #:method-frame-basic-deliver/channel
+           #:method-frame-basic-deliver/id
+           #:method-frame-basic-deliver/consumer-tag
+           #:method-frame-basic-deliver/delivery-tag
+           #:method-frame-basic-deliver/redeliveredp
+           #:method-frame-basic-deliver/exchange
+           #:method-frame-basic-deliver/routing-key
+           #:content-header-frame
+           #:content-header-frame/channel
+           #:content-header-frame/class-id
+           #:content-header-frame/body-size
+           #:content-header-frame/properties
+           #:content-body-frame
+           #:content-body-frame/channel
+           #:content-body-frame/body
+           #:method-frame-error
+           #:method-frame-error/channel
+           #:method-frame-error/method-id))
 
 (defpackage :cl-rabbit.examples
   (:use :cl :cl-rabbit)

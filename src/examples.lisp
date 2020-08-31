@@ -36,3 +36,29 @@
     (bordeaux-threads:make-thread (lambda ()
                                     (let ((*standard-output* out))
                                       (test-recv))))))
+
+(defun test-publisher-confirms ()
+  (with-connection (conn)
+    (let ((socket (tcp-socket-new conn)))
+      (socket-open socket "localhost" 5672)
+      (login-sasl-plain conn "/" "guest" "guest")
+      (with-channel (conn 2)
+        (let ((queue-name "pub-confirm"))
+          (exchange-declare conn 2 "pub-confirms-ex" "direct")
+          (queue-declare conn 2 :queue queue-name)
+          (queue-bind conn 2 :queue queue-name :exchange "pub-confirms-ex" :routing-key "pub-c")
+          (with-channel (conn 1)
+            (confirm-select conn 1)
+            (basic-publish conn 1
+                           :exchange "pub-confirms-ex"
+                           :routing-key "pub-c"
+                           :body "Publisher message.")
+            (let ((basic-ack-frame (simple-wait-frame conn)))
+              (format t "~&Got basic ack frame for message ~s"
+                      (method-frame-basic-acknowledgment/delivery-tag basic-ack-frame))))
+          (basic-consume conn 2 queue-name)
+          (let* ((result (consume-message conn))
+                 (message (envelope/message result)))
+            (format t "~&Got message ~s"
+                    (babel:octets-to-string (message/body message) :encoding :utf-8))
+            (cl-rabbit:basic-ack conn 2 (envelope/delivery-tag result))))))))
