@@ -192,7 +192,8 @@ closing the channel"
        (unwind-protect
             (progn (channel-open ,conn ,chan)
                    ,@body)
-         (channel-close ,conn ,chan)))))
+	 (ignore-errors
+          (channel-close ,conn ,chan))))))
 
 ;;;
 ;;;  API calls
