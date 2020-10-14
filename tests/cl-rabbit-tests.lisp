@@ -219,3 +219,93 @@
       (let* ((msg (consume-message conn :timeout 500000))
              (recv-text (babel:octets-to-string (message/body (envelope/message msg)))))
         (fiveam:is (equal content recv-text))))))
+
+(fiveam:test confirm-select-success-test
+  (with-rabbitmq-socket (conn)
+    (channel-open conn 2)
+    (confirm-select conn 2)))
+
+(fiveam:test confirm-select-when-channel-in-tx-failure-test
+  (fiveam:signals rabbitmq-server-error
+    (with-rabbitmq-socket (conn)
+    (channel-open conn 2)
+    (tx-select conn 2)
+    (confirm-select conn 2))))
+
+(fiveam:test simple-wait-frame-publisher-confirms-with-basic-acknowledgment
+  (with-rabbitmq-socket (conn)
+    (channel-open conn 2)
+    (confirm-select conn 2)
+    (exchange-declare conn 2 "direct-ex-test" "direct")
+    (basic-publish conn
+                   2
+                   :exchange "direct-ex-test"
+                   :routing-key "publisher-test"
+                   :body "test publisher confirm")
+    (let* ((frame (simple-wait-frame conn)))
+      (fiveam:is (typep frame 'method-frame-basic-acknowledgment))
+      (fiveam:is (eql (method-frame-basic-acknowledgment/channel frame) 2))
+      (fiveam:is (eql (method-frame-basic-acknowledgment/delivery-tag frame) 1))
+      (fiveam:is (not (method-frame-basic-acknowledgment/multiplep frame))))))
+
+(fiveam:test simple-wait-frame-no-consumer-for-mandatory-message-publishers-receives-return-header-body-method-frames
+  (with-rabbitmq-socket (conn)
+    (let* ((exchange "direct-ex-test")
+           (routing-key "publisher-test")
+           (content "test return method frame"))
+      (channel-open conn 2)
+      (exchange-declare conn 2 exchange "direct")
+      (basic-publish conn
+                     2
+                     :exchange exchange
+                     :routing-key routing-key
+                     :mandatory t
+                     :body content)
+      (let* ((return-method-frame (simple-wait-frame conn))
+             (content-header-frame (simple-wait-frame conn))
+             (content-body-frame (simple-wait-frame conn)))
+        ;; Assert return method frame
+        (fiveam:is (typep return-method-frame 'method-frame-basic-return))
+        (fiveam:is (eql (method-frame-basic-return/channel return-method-frame) 2))
+        (fiveam:is (equal (method-frame-basic-return/reply-text return-method-frame) "NO_ROUTE"))
+        (fiveam:is (equal (method-frame-basic-return/reply-code return-method-frame) 312))
+        (fiveam:is (equal (method-frame-basic-return/exchange return-method-frame) exchange))
+        (fiveam:is (equal (method-frame-basic-return/routing-key return-method-frame) routing-key))
+        ;; Assert content header frame
+        (fiveam:is (typep content-header-frame 'content-header-frame))
+        (fiveam:is (eql (content-header-frame/channel content-header-frame) 2))
+        (fiveam:is (eql (content-header-frame/class-id content-header-frame)
+                        #.cl-rabbit::+amqp-basic-class+))
+        (fiveam:is (> (content-header-frame/body-size content-header-frame)))
+        ;; Assert content body frame
+        (fiveam:is (typep content-body-frame 'content-body-frame))
+        (fiveam:is (eql (content-body-frame/channel content-body-frame) 2))
+        (fiveam:is (equal (babel:octets-to-string (content-body-frame/body content-body-frame))
+                          content))))))
+
+(fiveam:test simple-wait-frame-consumer-receives-deliver-method-frame
+  (with-rabbitmq-socket (conn)
+    (exchange-declare conn 1 "direct-ex-test" "direct")
+    (queue-declare conn 1 :queue "test-q" :auto-delete t)
+    (queue-bind conn
+                1
+                :queue "test-q"
+                :exchange "direct-ex-test"
+                :routing-key "deliver-method-frame-test")
+    (basic-consume conn 1 "test-q" :no-ack t)
+    (channel-open conn 2)
+    (basic-publish conn
+                   2
+                   :exchange "direct-ex-test"
+                   :routing-key "deliver-method-frame-test"
+                   :mandatory t
+                   :body "test receive deliver method frame")
+    (let* ((frame (simple-wait-frame conn)))
+      (fiveam:is (typep frame 'method-frame-basic-deliver))
+      (fiveam:is (eql (method-frame-basic-deliver/channel frame) 1))
+      (fiveam:is (not (null (method-frame-basic-deliver/consumer-tag frame))))
+      (fiveam:is (eql (method-frame-basic-deliver/delivery-tag frame) 1))
+      (fiveam:is (not (method-frame-basic-deliver/redeliveredp frame)))
+      (fiveam:is (equal (method-frame-basic-deliver/exchange frame) "direct-ex-test"))
+      (fiveam:is (equal (method-frame-basic-deliver/routing-key frame)
+                        "deliver-method-frame-test")))))

@@ -2,6 +2,7 @@
 
 #+(or freebsd darwin)
 (progn
+  (flag "-I/usr/local/include")
   (include "time.h")
   (include "sys/time.h"))
 
@@ -123,6 +124,13 @@
 (constant (+amqp-basic-user-id-flag+ "AMQP_BASIC_USER_ID_FLAG"))
 (constant (+amqp-basic-app-id-flag+ "AMQP_BASIC_APP_ID_FLAG"))
 (constant (+amqp-basic-cluster-id-flag+ "AMQP_BASIC_CLUSTER_ID_FLAG"))
+
+(constant (+amqp-connection-class+ "AMQP_CONNECTION_CLASS"))
+(constant (+amqp-channel-class+ "AMQP_CHANNEL_CLASS"))
+(constant (+amqp-access-class+ "AMQP_EXCHANGE_CLASS"))
+(constant (+amqp-exchange-class+ "AMQP_EXCHANGE_CLASS"))
+(constant (+amqp-queue-class+ "AMQP_QUEUE_CLASS"))
+(constant (+amqp-basic-class+ "AMQP_BASIC_CLASS"))
 
 (ctype size-t "size_t")
 (ctype amqp-boolean-t "amqp_boolean_t")
@@ -261,6 +269,31 @@
          (reply-text "reply_text" :type (:struct amqp-bytes-t))
          (class-id "class_id" :type uint16-t)
          (method-id "method_id" :type uint16-t))
+
+(cstruct amqp-basic-ack-t "amqp_basic_ack_t"
+         (delivery-tag "delivery_tag" :type uint64-t)
+         (multiplep "multiple" :type amqp-boolean-t))
+
+(cstruct amqp-basic-return-t "amqp_basic_return_t"
+         (reply-code "reply_code" :type uint16-t)
+         (reply-text "reply_text" :type (:struct amqp-bytes-t))
+         (exchange "exchange" :type (:struct amqp-bytes-t))
+         (routing-key "routing_key" :type (:struct amqp-bytes-t)))
+
+(cstruct amqp-basic-nack-t "amqp_basic_nack_t"
+         (delivery-tag "delivery_tag" :type uint64-t)
+         (multiplep "multiple" :type amqp-boolean-t)
+         (requeuep "requeue" :type amqp-boolean-t))
+
+(cstruct amqp-basic-deliver-t "amqp_basic_deliver_t"
+         (consumer-tag "consumer_tag" :type (:struct amqp-bytes-t))
+         (delivery-tag "delivery_tag" :type uint64-t)
+         (redeliveredp "redelivered" :type amqp-boolean-t)
+         (exchange "exchange" :type (:struct amqp-bytes-t))
+         (routing-key "routing_key" :type (:struct amqp-bytes-t)))
+
+(cstruct amqp-confirm-select-ok-t "amqp_confirm_select_ok_t"
+         (dummy "dummy" :type :char))
 
 (cvar ("amqp_empty_table" amqp-empty-table) (:struct amqp-table-t))
 (cvar ("amqp_empty_bytes" amqp-empty-bytes) (:struct amqp-bytes-t))
