@@ -178,9 +178,11 @@ the connection bound to CONN."
        (unwind-protect
             (let ((,conn ,conn-sym))
               ,@body)
-	 (unwind-protect
-	      (connection-close ,conn-sym)
-	   (destroy-connection ,conn-sym))))))
+	 (progn
+	   (ignore-errors
+	    (connection-close ,conn-sym))
+	   (ignore-errors
+	    (destroy-connection ,conn-sym)))))))
 
 (defmacro with-channel ((connection channel) &body body)
   "Opens CHANNEL, evaluates BODY and ensures you don't leave without
