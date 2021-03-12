@@ -734,6 +734,16 @@ subscription queues are bound to a topic exchange."
                (bytes->string (cffi:foreign-slot-value result '(:struct amqp-basic-consume-ok-t) 'consumer-tag)))))
       (maybe-release-buffers state))))
 
+(defun basic-qos (conn channel &key (global t) (prefetch-size 0) (prefetch-count 1))
+  (check-type channel integer)
+  (check-type prefetch-size integer)
+  (check-type prefetch-count integer)
+  (with-state (state conn)
+    (unwind-protect
+         (verify-rpc-framing-call state channel
+				  (amqp-basic-qos state channel prefetch-size prefetch-count (if global 1 0)))
+      (maybe-release-buffers state))))
+
 (defun consume-message (conn &key timeout)
   "Wait for and consume a message.
 Waits for a basic.deliver method on any channel, upon receipt of

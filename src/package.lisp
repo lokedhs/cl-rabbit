@@ -5,6 +5,7 @@
            #:basic-consume
            #:basic-nack
            #:basic-publish
+           #:basic-qos
            #:channel-close
            #:channel-flow
            #:channel-open

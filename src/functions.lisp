@@ -146,6 +146,13 @@
   (properties :pointer)
   (body (:struct amqp-bytes-t)))
 
+(cffi:defcfun ("amqp_basic_qos" amqp-basic-qos) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (prefetch_size uint32-t)
+  (prefetch_count uint16-t)
+  (global amqp-boolean-t))
+
 (cffi:defcfun ("amqp_exchange_declare" amqp-exchange-declare-0-5) :pointer
   (state amqp-connection-state-t)
   (channel amqp-channel-t)
